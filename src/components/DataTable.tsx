@@ -24,6 +24,8 @@ interface DataTableProps {
   onResetData: () => void;
   onNavigateToForm?: () => void;
   onUpdateResponseEmailSent?: (id: string, sentAt?: string) => void;
+  isResearcher?: boolean;
+  onOpenResearcherLogin?: () => void;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
@@ -32,6 +34,8 @@ export const DataTable: React.FC<DataTableProps> = ({
   onResetData,
   onNavigateToForm,
   onUpdateResponseEmailSent,
+  isResearcher = true,
+  onOpenResearcherLogin,
 }) => {
   const [search, setSearch] = useState('');
   const [degreeFilter, setDegreeFilter] = useState('all');

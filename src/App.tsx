@@ -10,10 +10,11 @@ import {
 } from './utils/storage';
 import { downloadCSVFile } from './utils/csv';
 import { InteractiveScreenAura } from './components/InteractiveScreenAura';
-import { Header } from './components/Header';
+import { Header, WebsiteView } from './components/Header';
 import { SurveyForm } from './components/SurveyForm';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { DataTable } from './components/DataTable';
+import { AboutStudy } from './components/AboutStudy';
 import { AppLoadingScreen } from './components/AppLoadingScreen';
 import { PhoneLockScreen } from './components/PhoneLockScreen';
 import { EmailDispatcher } from './components/EmailDispatcher';
@@ -22,7 +23,6 @@ import {
   Sparkles,
   BarChart3,
   FileSpreadsheet,
-  Layers,
   Activity,
   Sliders,
   Shield,
@@ -32,30 +32,27 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  GraduationCap,
+  BookOpen,
+  FileText,
+  Mail,
+  Heart,
 } from 'lucide-react';
 
 export default function App() {
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
-  const [currentView, setCurrentView] = useState<'form' | 'analytics' | 'table' | 'emails'>('form');
+  const [currentView, setCurrentView] = useState<WebsiteView>('form');
   const [themeMode, setThemeMode] = useState<VisualThemeMode>('blueLight');
   const [activeScreenTimeMinutes, setActiveScreenTimeMinutes] = useState<number>(270);
   const [showAuraControls, setShowAuraControls] = useState(false);
   const [isInteractiveBackground, setIsInteractiveBackground] = useState(true);
 
-  // Initial App loading screen state (run once per browser session)
-  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem('sta330_has_loaded') !== 'true';
-    } catch {
-      return true;
-    }
-  });
-
-  // Phone lock screen state (respondent login view)
-  const [isPhoneLocked, setIsPhoneLocked] = useState<boolean>(true);
+  // App loads directly as a website; phone lock screen is an optional simulation mode
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(false);
+  const [isPhoneLocked, setIsPhoneLocked] = useState<boolean>(false);
   const [unlockedRegNo, setUnlockedRegNo] = useState<string>('');
 
-  // Researcher access state
+  // Researcher administrative access state
   const [isResearcher, setIsResearcher] = useState<boolean>(() => {
     try {
       return localStorage.getItem('sta330_is_researcher') === 'true';
@@ -76,18 +73,16 @@ export default function App() {
     setResponses(loaded);
   }, []);
 
-  // Ensure respondents cannot access analytics or table views
+  // Ensure respondents only have access to 'form' and 'about' views;
+  // analytics, table, and emails are reserved exclusively for researchers.
   useEffect(() => {
-    if (!isResearcher && currentView !== 'form') {
+    if (!isResearcher && (currentView === 'analytics' || currentView === 'table' || currentView === 'emails')) {
       setCurrentView('form');
     }
   }, [isResearcher, currentView]);
 
   const handleLoadingComplete = () => {
     setIsInitialLoading(false);
-    try {
-      sessionStorage.setItem('sta330_has_loaded', 'true');
-    } catch {}
   };
 
   const handlePhoneUnlock = (regNo?: string) => {
@@ -139,7 +134,6 @@ export default function App() {
     setIsAuthenticating(true);
     setLoginError('');
 
-    // Simulate authenticating verification flow with loading interface
     setTimeout(() => {
       if (loginPasscode === 'Yas@2003') {
         setAuthSuccess(true);
@@ -153,14 +147,13 @@ export default function App() {
           setShowLoginModal(false);
           setLoginPasscode('');
           setLoginError('');
-          setIsPhoneLocked(false);
           setCurrentView('analytics');
         }, 500);
       } else {
         setIsAuthenticating(false);
         setLoginError('Incorrect password. Access denied.');
       }
-    }, 700);
+    }, 600);
   };
 
   const handleExitResearcher = () => {
@@ -168,13 +161,11 @@ export default function App() {
     try {
       localStorage.removeItem('sta330_is_researcher');
     } catch {}
-    setCurrentView('form');
-    setIsPhoneLocked(true);
   };
 
   return (
     <div className="relative min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-sky-500 selection:text-white">
-      {/* App Initial Calibration & Loading Interface */}
+      {/* Optional App Initial Calibration */}
       {isInitialLoading && (
         <AppLoadingScreen
           onComplete={handleLoadingComplete}
@@ -182,8 +173,8 @@ export default function App() {
         />
       )}
 
-      {/* Respondent Phone Lock Screen & Unlocking Interface */}
-      {!isInitialLoading && isPhoneLocked && (
+      {/* Optional Interactive Phone Lock Screen Simulation */}
+      {isPhoneLocked && (
         <PhoneLockScreen
           onUnlock={handlePhoneUnlock}
           themeMode={themeMode}
@@ -198,9 +189,9 @@ export default function App() {
         interactive={isInteractiveBackground}
       />
 
-      {/* Main Content Layer (Z-10 above canvas) */}
+      {/* Main Website Content Layer */}
       <div className="relative z-10 flex min-h-screen flex-col">
-        {/* Navigation Top Bar complying with Top Bar Contract */}
+        {/* Website Header & Navigation */}
         <Header
           currentView={currentView}
           onChangeView={setCurrentView}
@@ -211,33 +202,34 @@ export default function App() {
           isResearcher={isResearcher}
           onOpenResearcherLogin={() => setShowLoginModal(true)}
           onExitResearcher={handleExitResearcher}
+          onOpenMobileSimulation={() => setIsPhoneLocked(true)}
         />
 
-        {/* Researcher Mode Banner (when active) */}
+        {/* Researcher Mode Administrative Notice */}
         {isResearcher && (
-          <div className="border-b border-sky-500/30 bg-sky-950/60 px-4 py-2 backdrop-blur-md text-xs">
+          <div className="border-b border-sky-500/30 bg-sky-950/70 px-4 py-2 backdrop-blur-md text-xs">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sky-200">
                 <Shield className="h-4 w-4 text-sky-400 shrink-0" />
-                <span className="font-semibold text-white">Researcher / Designer Mode Active:</span>
+                <span className="font-semibold text-white">Researcher Administrator Active:</span>
                 <span className="text-sky-300">
-                  Analytics, Responses Table, and CSV Export are unlocked. Standard respondents only see the questionnaire.
+                  Full dataset management, individual response deletion, email configuration, and raw CSV export unlocked.
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleExitResearcher}
-                className="flex items-center gap-1.5 rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:text-white hover:border-slate-500 transition-colors"
+                className="flex items-center gap-1.5 rounded-md bg-slate-900 border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:text-white hover:border-slate-500 transition-colors cursor-pointer"
               >
                 <Lock className="h-3 w-3 text-rose-400" />
-                <span>Switch to Respondent View (Lock Phone)</span>
+                <span>Exit Administrator Mode</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Dynamic Background Telemetry Ribbon & Quick Switcher */}
-        <div className="border-b border-slate-800/40 bg-slate-950/40 px-4 py-2 backdrop-blur-sm text-xs">
+        {/* Website Sub-bar: Theme photon reactive indicator & Aura FX controls */}
+        <div className="border-b border-slate-800/40 bg-slate-950/50 px-4 py-2 backdrop-blur-sm text-xs">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[11px]">
@@ -247,7 +239,7 @@ export default function App() {
                   {themeMode === 'blueLight'
                     ? 'Daylight Blue (450nm)'
                     : themeMode === 'amberShield'
-                    ? 'Night Shift (Amber)'
+                    ? 'Night Shift (Amber 590nm)'
                     : 'Obsidian Minimal'}
                 </span>
               </div>
@@ -260,58 +252,25 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setShowAuraControls(!showAuraControls)}
-                className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-sky-300 transition-colors"
+                className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
               >
                 <Sliders className="h-3 w-3" />
-                <span>{showAuraControls ? 'Hide Visual FX' : 'Aura Effects'}</span>
+                <span>{showAuraControls ? 'Hide Visual FX' : 'Aura FX Controls'}</span>
               </button>
-            </div>
 
-            {/* Mobile Phone User Display Mode Bar (Daylight, Night Shift, OLED) */}
-            <div className="flex sm:hidden w-full items-center justify-between gap-1 pt-1.5 border-t border-slate-800/60 mt-1">
-              <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setIsPhoneLocked(true)}
+                className="hidden md:flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
+                title="Preview what respondent sees in smartphone mockup mode"
+              >
                 <Smartphone className="h-3 w-3 text-sky-400" />
-                <span>Mobile Display:</span>
-              </span>
-              <div className="flex items-center gap-1 rounded-lg bg-slate-900/90 p-0.5 border border-slate-800 text-[10px] font-mono">
-                <button
-                  type="button"
-                  onClick={() => setThemeMode('blueLight')}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    themeMode === 'blueLight'
-                      ? 'bg-sky-500 text-white font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  ☀️ Daylight
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setThemeMode('amberShield')}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    themeMode === 'amberShield'
-                      ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  🌙 Night Shift
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setThemeMode('obsidianOled')}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    themeMode === 'obsidianOled'
-                      ? 'bg-slate-700 text-white font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  📱 OLED
-                </button>
-              </div>
+                <span>Phone Mockup Mode</span>
+              </button>
             </div>
           </div>
 
@@ -338,7 +297,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsInteractiveBackground(!isInteractiveBackground)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer ${
                     isInteractiveBackground
                       ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                       : 'bg-slate-800 text-slate-400'
@@ -351,9 +310,21 @@ export default function App() {
           )}
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Website View Container */}
         <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8">
           <div className="mx-auto max-w-7xl">
+            {currentView === 'about' && (
+              <AboutStudy
+                onNavigateToForm={() => setCurrentView('form')}
+                onNavigateToAnalytics={() => setCurrentView('analytics')}
+                onNavigateToTable={() => setCurrentView('table')}
+                totalResponses={responses.length}
+                themeMode={themeMode}
+                isResearcher={isResearcher}
+                onOpenResearcherLogin={() => setShowLoginModal(true)}
+              />
+            )}
+
             {currentView === 'form' && (
               <SurveyForm
                 onSubmitSuccess={handleSurveySubmit}
@@ -361,13 +332,12 @@ export default function App() {
                 onNavigateToData={() => setCurrentView('analytics')}
                 isResearcher={isResearcher}
                 initialRegistrationNumber={unlockedRegNo}
-                onLockPhone={() => setIsPhoneLocked(true)}
                 themeMode={themeMode}
                 onChangeThemeMode={setThemeMode}
               />
             )}
 
-            {isResearcher && currentView === 'analytics' && (
+            {currentView === 'analytics' && (
               <AnalyticsDashboard
                 responses={responses}
                 onNavigateToForm={() => setCurrentView('form')}
@@ -375,17 +345,19 @@ export default function App() {
               />
             )}
 
-            {isResearcher && currentView === 'table' && (
+            {currentView === 'table' && (
               <DataTable
                 responses={responses}
                 onDeleteResponse={handleDeleteResponse}
                 onResetData={handleResetData}
                 onNavigateToForm={() => setCurrentView('form')}
                 onUpdateResponseEmailSent={handleUpdateEmailSent}
+                isResearcher={isResearcher}
+                onOpenResearcherLogin={() => setShowLoginModal(true)}
               />
             )}
 
-            {isResearcher && currentView === 'emails' && (
+            {currentView === 'emails' && (
               <EmailDispatcher
                 responses={responses}
                 onUpdateResponseEmailSent={handleUpdateEmailSent}
@@ -396,52 +368,119 @@ export default function App() {
           </div>
         </main>
 
-        {/* Academic Research Footer */}
-        <footer className="border-t border-slate-800/80 bg-slate-950/80 py-6 px-4 backdrop-blur-md text-xs text-slate-400">
-          <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-center md:text-left">
-              <p className="font-medium text-slate-300">
-                STA 330 2.0: Data Analysis and Preparation of Reports
-              </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Department of Statistics · Faculty of Applied Sciences · University of Sri Jayewardenepura
-              </p>
+        {/* Academic Research Website Footer */}
+        <footer className="border-t border-slate-800/80 bg-slate-950/90 py-8 px-4 sm:px-6 backdrop-blur-md text-xs text-slate-400">
+          <div className="mx-auto max-w-7xl space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-slate-800/60">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-white font-bold text-sm">
+                  <GraduationCap className="h-4 w-4 text-sky-400" />
+                  <span>University of Sri Jayewardenepura · Faculty of Applied Sciences</span>
+                </div>
+                <p className="text-slate-400 text-xs">
+                  Department of Statistics · STA 330 2.0 (Data Analysis and Preparation of Reports)
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Research Title: Demographic, Academic, and Lifestyle Factors Associated with Daily Smartphone Screen Time
+                </p>
+              </div>
+
+              {/* Website Navigation Links in Footer */}
+              <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('form')}
+                  className="text-slate-300 hover:text-sky-400 transition-colors cursor-pointer"
+                >
+                  Questionnaire
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('about')}
+                  className="text-slate-300 hover:text-sky-400 transition-colors cursor-pointer"
+                >
+                  About Research
+                </button>
+                {isResearcher && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView('analytics')}
+                      className="text-slate-300 hover:text-sky-400 transition-colors cursor-pointer"
+                    >
+                      Live Analytics
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView('table')}
+                      className="text-slate-300 hover:text-sky-400 transition-colors cursor-pointer"
+                    >
+                      Responses ({responses.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView('emails')}
+                      className="text-slate-300 hover:text-sky-400 transition-colors cursor-pointer"
+                    >
+                      Certificates
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
-              {isResearcher ? (
-                <>
-                  <span>N = {responses.length} responses</span>
-                  <span>·</span>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+              <div className="flex items-center gap-2">
+                <span>🔒 Strictly Confidential Academic Research</span>
+                <span>·</span>
+                <span>All respondent data is anonymized for statistical analysis</span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {isResearcher && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleExportCSV}
+                      className="text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+                    >
+                      Download Master CSV
+                    </button>
+                    <span>·</span>
+                  </>
+                )}
+                {isResearcher ? (
                   <button
                     type="button"
-                    onClick={handleExportCSV}
-                    className="text-sky-400 hover:text-sky-300 transition-colors"
+                    onClick={handleExitResearcher}
+                    className="text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
                   >
-                    Download Master CSV
+                    Exit Researcher Mode
                   </button>
-                </>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <span className="text-slate-400">
-                    🔒 Strictly Confidential Academic Survey Session
-                  </span>
-                  <span>·</span>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => setIsPhoneLocked(true)}
-                    className="text-sky-400 hover:text-sky-300 transition-colors"
+                    onClick={() => setShowLoginModal(true)}
+                    className="text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
                   >
-                    Lock Device
+                    Researcher Login
                   </button>
-                </div>
-              )}
+                )}
+                <span>·</span>
+                <button
+                  type="button"
+                  onClick={() => setIsPhoneLocked(true)}
+                  className="text-slate-400 hover:text-sky-300 transition-colors cursor-pointer"
+                >
+                  Phone Mockup Mode
+                </button>
+              </div>
             </div>
           </div>
         </footer>
       </div>
 
-      {/* Researcher Authentication Modal with Loading Interface */}
+      {/* Researcher Authentication Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
@@ -451,8 +490,8 @@ export default function App() {
                   <KeyRound className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100">Researcher &amp; Designer Portal</h3>
-                  <p className="text-[11px] text-slate-400">Staff access to analytical charts and raw CSV exports</p>
+                  <h3 className="text-sm font-bold text-slate-100">Researcher Portal</h3>
+                  <p className="text-[11px] text-slate-400">Department staff and study supervisor access</p>
                 </div>
               </div>
               <button
@@ -465,7 +504,7 @@ export default function App() {
                   setIsAuthenticating(false);
                   setAuthSuccess(false);
                 }}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-50 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -480,7 +519,7 @@ export default function App() {
                       <CheckCircle className="h-6 w-6" />
                     </div>
                     <p className="text-sm font-semibold text-emerald-300">Credentials Verified</p>
-                    <p className="text-xs text-slate-400 font-mono">Unlocking STA 330 Analytics Suite...</p>
+                    <p className="text-xs text-slate-400 font-mono">Unlocking Administrative Dashboard...</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -524,13 +563,13 @@ export default function App() {
                       setLoginError('');
                       setLoginPasscode('');
                     }}
-                    className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                    className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-sky-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-sky-400 transition-colors shadow-sm"
+                    className="rounded-lg bg-sky-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-sky-400 transition-colors shadow-sm cursor-pointer"
                   >
                     Log In
                   </button>
