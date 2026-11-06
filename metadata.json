@@ -1,0 +1,8 @@
+{
+  "name": "Remix Smartphone Screen Time Research Collector \u0026 Analyzer",
+  "description": "Academic survey data collection tool for demographic, academic, and lifestyle factors associated with smartphone screen time, with interactive visual effects and CSV export for analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
