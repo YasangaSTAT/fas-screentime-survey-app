@@ -82,6 +82,17 @@ export const PhoneLockScreen: React.FC<PhoneLockScreenProps> = ({
         isUnlocking ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
       }`}
     >
+      {/* Quick Website Entry Bar */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={triggerUnlock}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-sky-500 transition-colors shadow-lg cursor-pointer"
+        >
+          <span>Enter Website</span>
+          <ArrowRight className="h-3.5 w-3.5 text-sky-400" />
+        </button>
+      </div>
       {/* Dynamic ambient screen glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div

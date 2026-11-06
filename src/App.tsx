@@ -47,9 +47,9 @@ export default function App() {
   const [showAuraControls, setShowAuraControls] = useState(false);
   const [isInteractiveBackground, setIsInteractiveBackground] = useState(true);
 
-  // App loads directly as a website; phone lock screen is an optional simulation mode
+  // Begin website with phone mockup mode as requested
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(false);
-  const [isPhoneLocked, setIsPhoneLocked] = useState<boolean>(false);
+  const [isPhoneLocked, setIsPhoneLocked] = useState<boolean>(true);
   const [unlockedRegNo, setUnlockedRegNo] = useState<string>('');
 
   // Researcher administrative access state

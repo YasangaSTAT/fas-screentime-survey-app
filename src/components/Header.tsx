@@ -11,6 +11,7 @@ import {
   Mail,
   Info,
   CheckCircle2,
+  Smartphone,
 } from 'lucide-react';
 
 export type WebsiteView = 'about' | 'form' | 'analytics' | 'table' | 'emails';
@@ -201,6 +202,19 @@ export const Header: React.FC<HeaderProps> = ({
               📱 <span className="hidden sm:inline">OLED</span>
             </button>
           </div>
+
+          {/* Phone Mockup Mode Toggle */}
+          {onOpenMobileSimulation && (
+            <button
+              type="button"
+              onClick={onOpenMobileSimulation}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-300 bg-slate-900/90 border border-slate-700 rounded-lg hover:text-sky-300 hover:border-sky-500/50 transition-colors cursor-pointer"
+              title="Lock device / Switch to Phone Mockup Mode"
+            >
+              <Smartphone className="h-3.5 w-3.5 text-sky-400" />
+              <span className="hidden sm:inline">Phone Mode</span>
+            </button>
+          )}
 
           {/* Export CSV Button - Only for Researcher */}
           {isResearcher && (
