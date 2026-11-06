@@ -1,16 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <title>Smartphone Screen Time Research Collector & Analyzer</title>
-    <meta http-equiv="refresh" content="0;URL='/usj-fas-screentime-collector/'">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting - Smartphone Screen Time Research</title>
     <script>
-      window.location.replace('/usj-fas-screentime-collector/');
+      // Single Page Redirect for GitHub Pages
+      const segments = window.location.pathname.split('/').filter(Boolean);
+      // If deployed under /<repo>/, redirect to /<repo>/; otherwise to /
+      const targetUrl = segments.length > 0 ? '/' + segments[0] + '/' : '/';
+      window.location.replace(targetUrl);
     </script>
+    <meta http-equiv="refresh" content="0; url=./" />
+    <style>
+      body {
+        margin: 0;
+        background-color: #020617;
+        color: #94a3b8;
+        font-family: system-ui, -apple-system, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+      a {
+        color: #38bdf8;
+      }
+    </style>
   </head>
   <body>
-    <p style="font-family: sans-serif; text-align: center; margin-top: 50px; color: #64748b;">
-      Redirecting to STA 330 Screen Time Study...
-    </p>
+    <div>
+      <p>Redirecting to survey application...</p>
+      <p><a href="./">Click here if you are not redirected</a></p>
+    </div>
   </body>
 </html>

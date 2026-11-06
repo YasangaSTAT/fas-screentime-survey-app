@@ -267,12 +267,12 @@ export function deleteSurveyResponse(id: string): SurveyResponse[] {
 }
 
 export function resetToSeedData(): SurveyResponse[] {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SEED_RESPONSES));
+  saveResponses(INITIAL_SEED_RESPONSES);
   return INITIAL_SEED_RESPONSES;
 }
 
 export function clearAllSurveyData(): SurveyResponse[] {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+  saveResponses([]);
   return [];
 }
 

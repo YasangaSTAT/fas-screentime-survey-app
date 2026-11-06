@@ -5,8 +5,11 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(({ command, mode }) => {
   const isProduction = mode === 'production' || command === 'build' || process.env.NODE_ENV === 'production';
+  // Use relative base './' by default in production so the app works on ANY GitHub Pages repo name,
+  // custom domain, or subpath without 404 blank screen issues.
+  const base = command === 'serve' ? '/' : (process.env.BASE_URL || './');
   return {
-    base: isProduction ? '/usj-fas-screentime-collector/' : '/',
+    base,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
