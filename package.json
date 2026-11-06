@@ -1,8 +1,8 @@
 {
-  "name": "react-example",
+  "name": "fas-screentime-survey-app",
   "private": true,
-  "version": "0.0.0",
-  "homepage": "https://yasangastat.github.io/usj-fas-screentime-collector",
+  "version": "1.0.0",
+  "homepage": "https://yasangastat.github.io/fas-screentime-survey-app",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",

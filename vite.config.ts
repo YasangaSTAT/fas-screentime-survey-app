@@ -5,9 +5,11 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(({ command, mode }) => {
   const isProduction = mode === 'production' || command === 'build' || process.env.NODE_ENV === 'production';
-  // Use relative base './' by default in production so the app works on ANY GitHub Pages repo name,
-  // custom domain, or subpath without 404 blank screen issues.
-  const base = command === 'serve' ? '/' : (process.env.BASE_URL || './');
+  // Target base path: /fas-screentime-survey-app/ for GitHub Pages deployment
+  const repoName = process.env.GITHUB_REPOSITORY
+    ? process.env.GITHUB_REPOSITORY.split('/')[1]
+    : 'fas-screentime-survey-app';
+  const base = command === 'serve' ? '/' : (process.env.BASE_URL || `/${repoName}/`);
   return {
     base,
     plugins: [react(), tailwindcss()],
