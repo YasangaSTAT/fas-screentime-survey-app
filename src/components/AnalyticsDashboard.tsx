@@ -155,17 +155,59 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   if (!stats) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center backdrop-blur-md">
-        <p className="text-slate-400 text-sm">No survey responses recorded yet.</p>
-        {onNavigateToForm && (
-          <button
-            type="button"
-            onClick={onNavigateToForm}
-            className="mt-4 rounded-lg bg-sky-500 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-400"
-          >
-            Fill Out Questionnaire
-          </button>
-        )}
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-8 text-center backdrop-blur-xl shadow-xl">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-4">
+            <BarChart3 className="h-7 w-7" />
+          </div>
+          <h2 className="text-xl font-bold text-white tracking-tight">
+            STA 330 2.0 Academic Research Analytics
+          </h2>
+          <p className="mt-1.5 text-xs text-slate-400 max-w-lg mx-auto">
+            Faculty of Applied Sciences, University of Sri Jayewardenepura.
+            Statistical analysis will compute automatically once survey responses are submitted.
+          </p>
+
+          {/* Sample Size Target Progress */}
+          <div className="mt-6 mx-auto max-w-md rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-left">
+            <div className="flex items-center justify-between text-xs text-slate-300 font-medium mb-2">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+                Target Sample Size Progress
+              </span>
+              <span className="font-mono text-sky-400 font-bold">0 / 300 (0.0%)</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+              <div className="h-full bg-gradient-to-r from-sky-500 to-indigo-500 transition-all duration-500 w-0" />
+            </div>
+            <p className="mt-2 text-[11px] text-slate-500">
+              300 undergraduate survey responses needed for parametric and correlation analysis.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            {onNavigateToForm && (
+              <button
+                type="button"
+                onClick={onNavigateToForm}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-sky-500/20 hover:from-sky-400 hover:to-indigo-500 transition-all cursor-pointer"
+              >
+                <Smartphone className="h-4 w-4" />
+                <span>Fill Questionnaire</span>
+              </button>
+            )}
+            {onNavigateToTable && (
+              <button
+                type="button"
+                onClick={onNavigateToTable}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-all cursor-pointer"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>View Responses Table</span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

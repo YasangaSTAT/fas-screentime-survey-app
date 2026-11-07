@@ -276,8 +276,32 @@ export const DataTable: React.FC<DataTableProps> = ({
             <tbody className="divide-y divide-slate-800/60 font-mono">
               {filteredResponses.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400 font-sans">
-                    No matching records found.
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-sans">
+                    {responses.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                          <Smartphone className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-200">No Survey Responses Recorded Yet</p>
+                          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                            The survey dataset is clean and ready to record up to 300 student responses for STA 330 2.0.
+                          </p>
+                        </div>
+                        {onNavigateToForm && (
+                          <button
+                            type="button"
+                            onClick={onNavigateToForm}
+                            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-sky-500/20 hover:from-sky-400 hover:to-indigo-500 transition-all cursor-pointer"
+                          >
+                            <Smartphone className="h-4 w-4" />
+                            <span>Fill Survey Questionnaire</span>
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span>No matching records found for this filter.</span>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -445,11 +469,11 @@ export const DataTable: React.FC<DataTableProps> = ({
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(true)}
-                className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-                title="Reset dataset back to academic 300 benchmark responses"
+                className="flex items-center gap-1.5 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                title="Clear all collected survey data and reset table to 0 records"
               >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">Reset 300 Benchmarks</span>
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Clear All Data</span>
               </button>
             )}
           </div>
@@ -639,12 +663,12 @@ export const DataTable: React.FC<DataTableProps> = ({
           <div className="w-full max-w-md rounded-2xl border border-amber-500/30 bg-slate-900 p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  <RotateCcw className="h-5 w-5" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/20 text-red-400 border border-red-500/30">
+                  <Trash2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Reset Benchmark Data</h3>
-                  <p className="text-xs text-slate-400">Restore academic seed dataset</p>
+                  <h3 className="text-base font-bold text-white">Clear All Survey Data</h3>
+                  <p className="text-xs text-slate-400">Reset dataset to 0 records</p>
                 </div>
               </div>
               <button
@@ -656,7 +680,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               </button>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Reset dataset back to academic research sample benchmark (300 responses)? Any newly submitted responses will be replaced with the initial 300 benchmarks.
+              Are you sure you want to clear all collected survey responses? This will delete all records and reset the table to 0 responses so you can collect a fresh set of 300 respondent records.
             </p>
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
               <button
@@ -672,9 +696,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                   onResetData();
                   setShowResetConfirm(false);
                 }}
-                className="rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-amber-400"
+                className="rounded-lg bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-600 transition-colors"
               >
-                Reset Data
+                Clear All Responses
               </button>
             </div>
           </div>

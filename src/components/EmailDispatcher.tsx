@@ -349,8 +349,17 @@ export const EmailDispatcher: React.FC<EmailDispatcherProps> = ({
               <tbody className="divide-y divide-slate-800/60 font-mono">
                 {filteredResponses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400 font-sans">
-                      No matching participants found.
+                    <td colSpan={7} className="py-12 text-center text-slate-400 font-sans">
+                      {responses.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <p className="text-sm font-semibold text-slate-300">No Participants Registered Yet</p>
+                          <p className="text-xs text-slate-500 max-w-sm">
+                            As participants submit their screen time questionnaires, their records and certificate dispatches will appear here.
+                          </p>
+                        </div>
+                      ) : (
+                        <span>No matching participants found.</span>
+                      )}
                     </td>
                   </tr>
                 ) : (

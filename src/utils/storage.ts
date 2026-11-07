@@ -1,41 +1,51 @@
 import { SurveyResponse } from '../types/survey';
-import { INITIAL_SEED_RESPONSES_300 } from '../data/seedResponses300';
 
-const STORAGE_KEY = 'sta330_smartphone_survey_responses_v1';
+// Storage key v2: Clean slate for authentic respondent data collection (Target sample: 300)
+const STORAGE_KEY = 'sta330_smartphone_survey_responses_v2';
+const LEGACY_STORAGE_KEY_V1 = 'sta330_smartphone_survey_responses_v1';
 const DRAFT_KEY = 'sta330_survey_draft_v1';
 
-export const INITIAL_SEED_RESPONSES: SurveyResponse[] = INITIAL_SEED_RESPONSES_300;
+export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [];
 
+/**
+ * Loads stored responses from browser storage.
+ * Starts with an empty dataset (0 responses) so the research team can fill all 300 real survey records.
+ * Automatically clears legacy example/mock data from v1.
+ */
 export function loadStoredResponses(): SurveyResponse[] {
   try {
+    if (typeof localStorage !== 'undefined') {
+      // Clean up legacy mock data key if present
+      if (localStorage.getItem(LEGACY_STORAGE_KEY_V1)) {
+        localStorage.removeItem(LEGACY_STORAGE_KEY_V1);
+      }
+    }
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SEED_RESPONSES));
-      return INITIAL_SEED_RESPONSES;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
+
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      // Seamlessly upgrade existing local storage to the full target sample of 300 records,
-      // while preserving any user-submitted survey entries
-      if (parsed.length < 300) {
-        const userSubmitted = parsed.filter(
-          (r: SurveyResponse) =>
-            !r.id?.startsWith('RESP-USJ-100') && !r.id?.startsWith('RESP-USJ-1010')
-        );
-        const upgraded = [...userSubmitted, ...INITIAL_SEED_RESPONSES_300];
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(upgraded));
-        } catch {
-          // ignore
-        }
-        return upgraded;
+    if (Array.isArray(parsed)) {
+      // Ensure any legacy seed responses (IDs like RESP-USJ-1001 to RESP-USJ-1300) are removed
+      const authenticResponses = parsed.filter(
+        (r: SurveyResponse) =>
+          !r.id?.startsWith('RESP-USJ-10') &&
+          !r.id?.startsWith('RESP-USJ-11') &&
+          !r.id?.startsWith('RESP-USJ-12')
+      );
+
+      if (authenticResponses.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(authenticResponses));
       }
-      return parsed;
+      return authenticResponses;
     }
-    return INITIAL_SEED_RESPONSES;
+    return [];
   } catch (e) {
     console.error('Error loading stored responses:', e);
-    return INITIAL_SEED_RESPONSES;
+    return [];
   }
 }
 
@@ -66,8 +76,8 @@ export function deleteSurveyResponse(id: string): SurveyResponse[] {
 }
 
 export function resetToSeedData(): SurveyResponse[] {
-  saveResponses(INITIAL_SEED_RESPONSES);
-  return INITIAL_SEED_RESPONSES;
+  saveResponses([]);
+  return [];
 }
 
 export function clearAllSurveyData(): SurveyResponse[] {
