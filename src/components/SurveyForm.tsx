@@ -203,9 +203,6 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
       if (!formData.degreeProgramme) newErrors.degreeProgramme = 'Degree Programme selection is required.';
       if (!formData.academicYear) newErrors.academicYear = 'Academic Year is required.';
       if (!formData.accommodationType) newErrors.accommodationType = 'Accommodation Type is required.';
-      if (formData.accommodationType === 'Other' && !formData.accommodationOtherText?.trim()) {
-        newErrors.accommodationOtherText = 'Please specify your accommodation type.';
-      }
     }
 
     if (step === 3 || viewMode === 'all') {
@@ -971,7 +968,6 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
                     'Family home',
                     'University accommodation (Hostel)',
                     'Rented accommodation (Boarding/Annex)',
-                    'Other',
                   ].map((acc) => {
                     const isSelected = formData.accommodationType === acc;
                     return (
@@ -992,29 +988,15 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
                         >
                           {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-slate-900" />}
                         </div>
-                        <span>{acc === 'Other' ? 'Other (Please specify)' : acc}</span>
+                        <span>{acc}</span>
                       </button>
                     );
                   })}
                 </div>
 
-                {formData.accommodationType === 'Other' && (
-                  <input
-                    type="text"
-                    value={formData.accommodationOtherText || ''}
-                    onChange={(e) => updateField('accommodationOtherText', e.target.value)}
-                    placeholder="Specify your accommodation..."
-                    className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none"
-                  />
-                )}
                 {errors.accommodationType && (
                   <p className="text-xs text-rose-400 flex items-center gap-1 mt-1">
                     <AlertCircle className="h-3 w-3" /> {errors.accommodationType}
-                  </p>
-                )}
-                {errors.accommodationOtherText && (
-                  <p className="text-xs text-rose-400 flex items-center gap-1 mt-1">
-                    <AlertCircle className="h-3 w-3" /> {errors.accommodationOtherText}
                   </p>
                 )}
               </div>
@@ -1081,7 +1063,6 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
                     'Academic (LMS, reading lecture notes, research apps)',
                     'Social Communication (WhatsApp, Telegram, Calls)',
                     'Entertainment & Leisure (Social Media, YouTube, Gaming, Movies)',
-                    'Mixed (Equal combination of multiple purposes)',
                   ].map((purpose) => {
                     const isSelected = formData.primaryPurpose === purpose;
                     return (
