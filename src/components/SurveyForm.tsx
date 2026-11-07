@@ -19,6 +19,7 @@ import {
   RotateCcw,
   AlertCircle,
   FileText,
+  FileSpreadsheet,
   User,
   GraduationCap,
   Smartphone,
@@ -54,6 +55,7 @@ interface SurveyFormProps {
   onLockPhone?: () => void;
   themeMode?: VisualThemeMode;
   onChangeThemeMode?: (mode: VisualThemeMode) => void;
+  totalResponses?: number;
 }
 
 const INITIAL_FORM: Omit<SurveyResponse, 'id' | 'timestamp' | 'createdAtFormatted'> = {
@@ -86,6 +88,7 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
   onLockPhone,
   themeMode = 'blueLight',
   onChangeThemeMode,
+  totalResponses,
 }) => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [currentStep, setCurrentStep] = useState<SurveySection>(1);
@@ -259,7 +262,7 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
 
     const now = new Date();
     const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const uniqueId = `RESP-USJ-${Math.floor(1000 + Math.random() * 9000)}`;
+    const uniqueId = `RESP-USJ-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
 
     const newResponse: SurveyResponse = {
       ...formData,
@@ -431,11 +434,39 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
             );
           })()}
 
+          {/* Live Confirmation of Stored Dataset Record */}
+          <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 text-left shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                </span>
+                <span className="text-xs font-bold text-emerald-300">
+                  Response Successfully Recorded in Dataset
+                </span>
+              </div>
+              <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                {submittedResponse.id}
+              </span>
+            </div>
+            <div className="mt-2.5 flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+              <p>
+                Your response has been permanently stored in the survey database and integrated into the research dataset.
+              </p>
+              {typeof totalResponses === 'number' && (
+                <span className="font-mono text-[11px] text-slate-400 whitespace-nowrap">
+                  Total Verified Responses: <strong className="text-white">{totalResponses}</strong>
+                </span>
+              )}
+            </div>
+          </div>
+
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={handleResetForm}
-              className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+              className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
             >
               <RotateCcw className="h-4 w-4" />
               <span>Submit Another Response</span>
@@ -444,20 +475,22 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
               <button
                 type="button"
                 onClick={onLockPhone}
-                className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5 text-xs font-semibold text-sky-300 hover:bg-slate-700 hover:text-sky-200 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2.5 text-xs font-semibold text-sky-300 hover:bg-slate-700 hover:text-sky-200 transition-colors cursor-pointer"
                 title="Lock phone screen for next respondent"
               >
                 <Lock className="h-4 w-4" />
                 <span>Lock Device for Next Respondent</span>
               </button>
             )}
-            {isResearcher && onNavigateToData && (
+            {onNavigateToData && (
               <button
                 type="button"
                 onClick={onNavigateToData}
-                className="flex items-center gap-2 rounded-lg bg-sky-500 px-5 py-2.5 text-xs font-semibold text-white hover:bg-sky-400 transition-colors shadow-lg shadow-sky-500/20"
+                className="flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2.5 text-xs font-semibold text-white transition-colors shadow-lg shadow-emerald-600/25 cursor-pointer"
+                title="View your submitted record in the research dataset table"
               >
-                <span>View Analytics &amp; Export CSV (Researcher)</span>
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>View in Responses Table</span>
                 <ChevronRight className="h-4 w-4" />
               </button>
             )}

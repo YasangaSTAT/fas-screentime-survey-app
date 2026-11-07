@@ -6,8 +6,8 @@ const DRAFT_KEY = 'sta330_survey_draft_v1';
 export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   {
     id: 'RESP-USJ-1001',
-    timestamp: '2026-11-01T08:30:00.000Z',
-    createdAtFormatted: '2026-11-01 14:00',
+    timestamp: '2024-11-01T08:30:00.000Z',
+    createdAtFormatted: '2024-11-01 14:00',
     fullName: 'Kavindu Bandara',
     registrationNumber: 'AS2021045',
     contactNumber: '0771234567',
@@ -28,8 +28,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1002',
-    timestamp: '2026-11-01T09:15:00.000Z',
-    createdAtFormatted: '2026-11-01 14:45',
+    timestamp: '2024-11-01T09:15:00.000Z',
+    createdAtFormatted: '2024-11-01 14:45',
     fullName: 'Sanduni Weerasinghe',
     registrationNumber: 'AS2022112',
     contactNumber: '0719876543',
@@ -50,8 +50,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1003',
-    timestamp: '2026-11-01T11:40:00.000Z',
-    createdAtFormatted: '2026-11-01 17:10',
+    timestamp: '2024-11-01T11:40:00.000Z',
+    createdAtFormatted: '2024-11-01 17:10',
     fullName: 'Nipun Jayawardena',
     registrationNumber: 'AS2023078',
     contactNumber: '0765544332',
@@ -72,8 +72,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1004',
-    timestamp: '2026-11-02T04:20:00.000Z',
-    createdAtFormatted: '2026-11-02 09:50',
+    timestamp: '2024-11-02T04:20:00.000Z',
+    createdAtFormatted: '2024-11-02 09:50',
     fullName: 'Dinithi Senanayake',
     registrationNumber: 'AS2021189',
     contactNumber: '0702334455',
@@ -94,8 +94,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1005',
-    timestamp: '2026-11-02T07:10:00.000Z',
-    createdAtFormatted: '2026-11-02 12:40',
+    timestamp: '2024-11-02T07:10:00.000Z',
+    createdAtFormatted: '2024-11-02 12:40',
     fullName: 'Tharindu Fernando',
     registrationNumber: 'AS2022090',
     contactNumber: '0783322114',
@@ -116,8 +116,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1006',
-    timestamp: '2026-11-02T10:05:00.000Z',
-    createdAtFormatted: '2026-11-02 15:35',
+    timestamp: '2024-11-02T10:05:00.000Z',
+    createdAtFormatted: '2024-11-02 15:35',
     fullName: 'Himashi Karunaratne',
     registrationNumber: 'AS2023156',
     contactNumber: '0714455667',
@@ -138,8 +138,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1007',
-    timestamp: '2026-11-02T13:30:00.000Z',
-    createdAtFormatted: '2026-11-02 19:00',
+    timestamp: '2024-11-02T13:30:00.000Z',
+    createdAtFormatted: '2024-11-02 19:00',
     fullName: 'Malith Dissanayake',
     registrationNumber: 'AS2021008',
     contactNumber: '0758899001',
@@ -160,8 +160,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1008',
-    timestamp: '2026-11-03T02:15:00.000Z',
-    createdAtFormatted: '2026-11-03 07:45',
+    timestamp: '2024-11-03T02:15:00.000Z',
+    createdAtFormatted: '2024-11-03 07:45',
     fullName: 'Sewwandi Gamage',
     registrationNumber: 'AS2022204',
     contactNumber: '0761122334',
@@ -182,8 +182,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1009',
-    timestamp: '2026-11-03T05:40:00.000Z',
-    createdAtFormatted: '2026-11-03 11:10',
+    timestamp: '2024-11-03T05:40:00.000Z',
+    createdAtFormatted: '2024-11-03 11:10',
     fullName: 'Praveen Abeykoon',
     registrationNumber: 'AS2023022',
     contactNumber: '0778899112',
@@ -204,8 +204,8 @@ export const INITIAL_SEED_RESPONSES: SurveyResponse[] = [
   },
   {
     id: 'RESP-USJ-1010',
-    timestamp: '2026-11-03T08:10:00.000Z',
-    createdAtFormatted: '2026-11-03 13:40',
+    timestamp: '2024-11-03T08:10:00.000Z',
+    createdAtFormatted: '2024-11-03 13:40',
     fullName: 'Chalani Rajapaksha',
     registrationNumber: 'AS2021067',
     contactNumber: '0723456789',
@@ -235,7 +235,32 @@ export function loadStoredResponses(): SurveyResponse[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      // Normalize any seed items that had future 2026 benchmark dates to 2024
+      // so newly submitted real-time responses always sort cleanly to the top
+      let modified = false;
+      const sanitized = parsed.map((item: SurveyResponse) => {
+        if (
+          item.id?.startsWith('RESP-USJ-10') &&
+          typeof item.timestamp === 'string' &&
+          item.timestamp.startsWith('2026-11-0')
+        ) {
+          modified = true;
+          return {
+            ...item,
+            timestamp: item.timestamp.replace('2026-11-', '2024-11-'),
+            createdAtFormatted: (item.createdAtFormatted || '').replace('2026-11-', '2024-11-'),
+          };
+        }
+        return item;
+      });
+      if (modified) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+        } catch {
+          // ignore
+        }
+      }
+      return sanitized;
     }
     return INITIAL_SEED_RESPONSES;
   } catch (e) {
@@ -247,6 +272,9 @@ export function loadStoredResponses(): SurveyResponse[] {
 export function saveResponses(responses: SurveyResponse[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(responses));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sta330_responses_updated', { detail: responses }));
+    }
   } catch (e) {
     console.error('Error saving responses:', e);
   }
@@ -254,7 +282,8 @@ export function saveResponses(responses: SurveyResponse[]): void {
 
 export function addSurveyResponse(response: SurveyResponse): SurveyResponse[] {
   const current = loadStoredResponses();
-  const updated = [response, ...current];
+  // Ensure the new response is prepended at index 0 and deduplicated
+  const updated = [response, ...current.filter((r) => r.id !== response.id)];
   saveResponses(updated);
   return updated;
 }

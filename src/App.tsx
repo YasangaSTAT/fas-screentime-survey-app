@@ -67,16 +67,29 @@ export default function App() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authSuccess, setAuthSuccess] = useState(false);
 
-  // Load responses from storage on mount
+  // Load responses from storage on mount & keep in sync with local storage & custom events
   useEffect(() => {
-    const loaded = loadStoredResponses();
-    setResponses(loaded);
+    const syncResponses = () => {
+      const loaded = loadStoredResponses();
+      setResponses(loaded);
+    };
+
+    syncResponses();
+
+    const handleSync = () => syncResponses();
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('sta330_responses_updated', handleSync);
+
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('sta330_responses_updated', handleSync);
+    };
   }, []);
 
-  // Ensure respondents only have access to 'form' and 'about' views;
-  // analytics, table, and emails are reserved exclusively for researchers.
+  // Ensure restricted administrative views (analytics and email dispatcher) are for researchers,
+  // but allow table view so submitted responses can be verified.
   useEffect(() => {
-    if (!isResearcher && (currentView === 'analytics' || currentView === 'table' || currentView === 'emails')) {
+    if (!isResearcher && (currentView === 'analytics' || currentView === 'emails')) {
       setCurrentView('form');
     }
   }, [isResearcher, currentView]);
@@ -329,11 +342,13 @@ export default function App() {
               <SurveyForm
                 onSubmitSuccess={handleSurveySubmit}
                 onScreenTimeChange={(mins) => setActiveScreenTimeMinutes(mins)}
-                onNavigateToData={() => setCurrentView('analytics')}
+                onNavigateToData={() => setCurrentView('table')}
                 isResearcher={isResearcher}
                 initialRegistrationNumber={unlockedRegNo}
                 themeMode={themeMode}
                 onChangeThemeMode={setThemeMode}
+                totalResponses={responses.length}
+                onLockPhone={() => setIsPhoneLocked(true)}
               />
             )}
 

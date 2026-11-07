@@ -15,6 +15,7 @@ import {
   Smartphone,
   GraduationCap,
   Mail,
+  Lock,
 } from 'lucide-react';
 import { EmailModal } from './EmailModal';
 
@@ -49,32 +50,46 @@ export const DataTable: React.FC<DataTableProps> = ({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const filteredResponses = useMemo(() => {
-    return responses.filter((r) => {
-      const matchSearch =
-        search === '' ||
-        r.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        r.registrationNumber.toLowerCase().includes(search.toLowerCase()) ||
-        r.email.toLowerCase().includes(search.toLowerCase()) ||
-        r.id.toLowerCase().includes(search.toLowerCase());
+    return responses
+      .filter((r) => {
+        const q = search.trim().toLowerCase();
+        const matchSearch =
+          q === '' ||
+          (r.fullName || '').toLowerCase().includes(q) ||
+          (r.registrationNumber || '').toLowerCase().includes(q) ||
+          (r.email || '').toLowerCase().includes(q) ||
+          (r.id || '').toLowerCase().includes(q);
 
-      const matchDegree = degreeFilter === 'all' || r.degreeProgramme === degreeFilter;
-      const matchYear = yearFilter === 'all' || r.academicYear === yearFilter;
+        const matchDegree = degreeFilter === 'all' || r.degreeProgramme === degreeFilter;
+        const matchYear = yearFilter === 'all' || r.academicYear === yearFilter;
 
-      return matchSearch && matchDegree && matchYear;
-    }).sort((a, b) => {
-      let valA = a[sortField];
-      let valB = b[sortField];
+        return matchSearch && matchDegree && matchYear;
+      })
+      .sort((a, b) => {
+        // High-precision timestamp sorting: newest submissions first by default
+        if (sortField === 'timestamp') {
+          const timeA = new Date(a.timestamp || 0).getTime();
+          const timeB = new Date(b.timestamp || 0).getTime();
+          if (timeA !== timeB) {
+            return sortAsc ? timeA - timeB : timeB - timeA;
+          }
+        }
 
-      if (typeof valA === 'string') valA = (valA as string).toLowerCase();
-      if (typeof valB === 'string') valB = (valB as string).toLowerCase();
+        let valA = a[sortField];
+        let valB = b[sortField];
 
-      if (valA === undefined || valA === null) return 1;
-      if (valB === undefined || valB === null) return -1;
+        // Numeric sorting for screen time, sleep hours, study hours, budget, age
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return sortAsc ? valA - valB : valB - valA;
+        }
 
-      if (valA < valB) return sortAsc ? -1 : 1;
-      if (valA > valB) return sortAsc ? 1 : -1;
-      return 0;
-    });
+        const strA = String(valA ?? '').toLowerCase();
+        const strB = String(valB ?? '').toLowerCase();
+
+        if (strA < strB) return sortAsc ? -1 : 1;
+        if (strA > strB) return sortAsc ? 1 : -1;
+        return 0;
+      });
   }, [responses, search, degreeFilter, yearFilter, sortField, sortAsc]);
 
   const handleSort = (field: keyof SurveyResponse) => {
@@ -244,12 +259,29 @@ export const DataTable: React.FC<DataTableProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredResponses.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="hover:bg-slate-800/40 transition-colors group"
-                  >
-                    <td className="py-3 px-3.5 text-sky-400 font-semibold">{r.id}</td>
+                filteredResponses.map((r) => {
+                  const isNewlySubmitted =
+                    !r.id.startsWith('RESP-USJ-100') && !r.id.startsWith('RESP-USJ-1010');
+                  return (
+                    <tr
+                      key={r.id}
+                      className={`transition-colors group ${
+                        isNewlySubmitted
+                          ? 'bg-emerald-950/25 hover:bg-emerald-950/40 border-l-2 border-emerald-400'
+                          : 'hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <td className="py-3 px-3.5 text-sky-400 font-semibold whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span>{r.id}</span>
+                          {isNewlySubmitted && (
+                            <span className="inline-flex items-center gap-1 rounded bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[9px] font-mono font-bold text-emerald-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              NEW
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     <td className="py-3 px-3.5 font-sans">
                       <div className="font-medium text-slate-100">{r.fullName}</div>
                       <div className="text-[11px] font-mono text-slate-400">{r.registrationNumber}</div>
@@ -296,19 +328,33 @@ export const DataTable: React.FC<DataTableProps> = ({
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(r)}
-                          className="rounded p-1 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
-                          title={`Delete Response for ${r.fullName}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {isResearcher ? (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(r)}
+                            className="rounded p-1 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
+                            title={`Delete Response for ${r.fullName}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          onOpenResearcherLogin && (
+                            <button
+                              type="button"
+                              onClick={onOpenResearcherLogin}
+                              className="rounded p-1 text-slate-600 hover:text-slate-400 transition-colors"
+                              title="Researcher credentials required to delete records"
+                            >
+                              <Lock className="h-3.5 w-3.5" />
+                            </button>
+                          )
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                );
+              })
+            )}
             </tbody>
           </table>
         </div>
