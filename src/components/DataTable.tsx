@@ -16,6 +16,8 @@ import {
   GraduationCap,
   Mail,
   Lock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { EmailModal } from './EmailModal';
 
@@ -43,6 +45,8 @@ export const DataTable: React.FC<DataTableProps> = ({
   const [yearFilter, setYearFilter] = useState('all');
   const [sortField, setSortField] = useState<keyof SurveyResponse>('timestamp');
   const [sortAsc, setSortAsc] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(50); // 25, 50, 100, 300 (all)
   const [selectedResponse, setSelectedResponse] = useState<SurveyResponse | null>(null);
   const [emailModalParticipant, setEmailModalParticipant] = useState<SurveyResponse | null>(null);
   const [copied, setCopied] = useState(false);
@@ -92,6 +96,15 @@ export const DataTable: React.FC<DataTableProps> = ({
       });
   }, [responses, search, degreeFilter, yearFilter, sortField, sortAsc]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredResponses.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedResponses = useMemo(() => {
+    if (pageSize >= filteredResponses.length) return filteredResponses;
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredResponses.slice(startIndex, startIndex + pageSize);
+  }, [filteredResponses, safeCurrentPage, pageSize]);
+
   const handleSort = (field: keyof SurveyResponse) => {
     if (sortField === field) {
       setSortAsc(!sortAsc);
@@ -124,7 +137,10 @@ export const DataTable: React.FC<DataTableProps> = ({
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search by name, reg no, email..."
               className="w-full rounded-lg border border-slate-700 bg-slate-950/80 pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-sky-500 focus:outline-none"
             />
@@ -133,7 +149,10 @@ export const DataTable: React.FC<DataTableProps> = ({
           {/* Degree Filter */}
           <select
             value={degreeFilter}
-            onChange={(e) => setDegreeFilter(e.target.value)}
+            onChange={(e) => {
+              setDegreeFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-xs text-slate-300 focus:border-sky-500 focus:outline-none"
           >
             <option value="all">All Programmes</option>
@@ -146,7 +165,10 @@ export const DataTable: React.FC<DataTableProps> = ({
           {/* Year Filter */}
           <select
             value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value)}
+            onChange={(e) => {
+              setYearFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-xs text-slate-300 focus:border-sky-500 focus:outline-none"
           >
             <option value="all">All Academic Years</option>
@@ -259,7 +281,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredResponses.map((r) => {
+                paginatedResponses.map((r) => {
                   const isNewlySubmitted =
                     !r.id.startsWith('RESP-USJ-100') && !r.id.startsWith('RESP-USJ-1010');
                   return (
@@ -359,21 +381,77 @@ export const DataTable: React.FC<DataTableProps> = ({
           </table>
         </div>
 
-        {/* Footer info & Reset option */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 p-4 text-xs text-slate-400">
-          <div>
-            Showing <span className="font-mono text-slate-200">{filteredResponses.length}</span> of{' '}
-            <span className="font-mono text-slate-200">{responses.length}</span> recorded responses
+        {/* Footer info, Pagination & Reset option */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-800 p-4 text-xs text-slate-400">
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              Showing <span className="font-mono text-slate-200">{filteredResponses.length === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1}</span>–<span className="font-mono text-slate-200">{Math.min(safeCurrentPage * pageSize, filteredResponses.length)}</span> of{' '}
+              <span className="font-mono text-slate-200 font-bold">{filteredResponses.length}</span> records
+              <span className="text-slate-500 ml-1.5 hidden sm:inline">(Target Sample: 300 · Total Verified: {responses.length})</span>
+            </div>
+
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-1.5 ml-1 sm:ml-3">
+              <span className="text-slate-500 text-[11px]">Rows:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded border border-slate-700 bg-slate-950 px-2 py-0.5 text-xs text-slate-300 focus:border-sky-500 focus:outline-none cursor-pointer"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={300}>All (300)</option>
+              </select>
+            </div>
           </div>
+
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowResetConfirm(true)}
-              className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              <span>Reset Benchmark Data</span>
-            </button>
+            {/* Pagination Buttons */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-lg border border-slate-800">
+                <button
+                  type="button"
+                  disabled={safeCurrentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  title="Previous page"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Prev</span>
+                </button>
+
+                <span className="px-2 font-mono text-[11px] text-slate-300">
+                  <span className="text-sky-400 font-bold">{safeCurrentPage}</span> / {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={safeCurrentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  title="Next page"
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
+            {isResearcher && (
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(true)}
+                className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                title="Reset dataset back to academic 300 benchmark responses"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Reset 300 Benchmarks</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -578,7 +656,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               </button>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Reset dataset back to academic seed benchmark (10 responses)? Any newly submitted responses will be replaced with initial benchmarks.
+              Reset dataset back to academic research sample benchmark (300 responses)? Any newly submitted responses will be replaced with the initial 300 benchmarks.
             </p>
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
               <button

@@ -61,7 +61,9 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Active Academic Study</span>
             </span>
             <span className="text-slate-600">·</span>
-            <span className="text-slate-400">Verified Sample: {totalResponses} Students</span>
+            <span className="text-slate-300">
+              Sample: <strong className="text-emerald-400 font-bold">{totalResponses}</strong> / 300 Students {totalResponses >= 300 ? '(Target Achieved)' : ''}
+            </span>
           </div>
         </div>
       </div>

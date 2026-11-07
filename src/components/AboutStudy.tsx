@@ -199,12 +199,16 @@ export const AboutStudy: React.FC<AboutStudyProps> = ({
           <h3 className="text-base font-bold text-white">Target Population &amp; Eligibility</h3>
           <ul className="space-y-2.5 text-xs text-slate-300">
             <li className="flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Target Sample Size: <strong className="text-white">300 Undergraduate Students</strong> representing all 4 academic years.</span>
+            </li>
+            <li className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
               <span>Currently registered undergraduate students in the <strong>Faculty of Applied Sciences (USJ)</strong>.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
-              <span>Students across 1st Year, 2nd Year, 3rd Year, and Final Year degree tracks.</span>
+              <span>Disciplines: Physical Science, Biological Science, Food Science &amp; Technology, and Sports Science &amp; Management.</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />

@@ -4,12 +4,9 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(({ command, mode }) => {
-  const isProduction = mode === 'production' || command === 'build' || process.env.NODE_ENV === 'production';
-  // Target base path: /fas-screentime-survey-app/ for GitHub Pages deployment
-  const repoName = process.env.GITHUB_REPOSITORY
-    ? process.env.GITHUB_REPOSITORY.split('/')[1]
-    : 'fas-screentime-survey-app';
-  const base = command === 'serve' ? '/' : (process.env.BASE_URL || `/${repoName}/`);
+  // Use relative base './' in production builds so assets resolve correctly on GitHub Pages
+  // whether deployed under /fas-screentime-survey-app/, custom domains, or subpaths
+  const base = command === 'serve' ? '/' : (process.env.BASE_URL || './');
   return {
     base,
     plugins: [react(), tailwindcss()],
