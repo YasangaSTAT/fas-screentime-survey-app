@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting to Smartphone Screen Time Survey...</title>
+    <script>
+      (function() {
+        var base = '/fas-screentime-survey-app/';
+        var path = window.location.pathname;
+        if (!path.includes('/docs')) {
+          window.location.replace(base + 'docs/' + window.location.search + window.location.hash);
+        } else {
+          window.location.replace(base + 'docs/');
+        }
+      })();
+    </script>
+    <meta http-equiv="refresh" content="0; url=./docs/" />
+  </head>
+  <body style="font-family: system-ui, sans-serif; text-align: center; padding: 3rem;">
+    <h2>Smartphone Screen Time Research Collector & Analyzer</h2>
+    <p>University of Sri Jayewardenepura</p>
+    <p>Loading application... If not redirected automatically, <a href="./docs/">click here</a>.</p>
+  </body>
+</html>

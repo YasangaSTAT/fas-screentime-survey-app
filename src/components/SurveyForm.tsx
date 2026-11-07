@@ -19,7 +19,6 @@ import {
   RotateCcw,
   AlertCircle,
   FileText,
-  FileSpreadsheet,
   User,
   GraduationCap,
   Smartphone,
@@ -480,18 +479,6 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
               >
                 <Lock className="h-4 w-4" />
                 <span>Lock Device for Next Respondent</span>
-              </button>
-            )}
-            {onNavigateToData && (
-              <button
-                type="button"
-                onClick={onNavigateToData}
-                className="flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2.5 text-xs font-semibold text-white transition-colors shadow-lg shadow-emerald-600/25 cursor-pointer"
-                title="View your submitted record in the research dataset table"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                <span>View in Responses Table</span>
-                <ChevronRight className="h-4 w-4" />
               </button>
             )}
           </div>
