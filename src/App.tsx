@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { SurveyResponse, VisualThemeMode } from './types/survey';
 import {
   loadStoredResponses,
+  subscribeToSurveyResponses,
   addSurveyResponse,
   deleteSurveyResponse,
-  resetToSeedData,
+  clearAllSurveyData,
   updateSurveyResponseEmailSent,
   resetAllEmailStatusesToPending,
 } from './utils/storage';
+import { testConnection } from './firebase/config';
 import { downloadCSVFile } from './utils/csv';
 import { InteractiveScreenAura } from './components/InteractiveScreenAura';
 import { Header, WebsiteView } from './components/Header';
@@ -67,22 +69,18 @@ export default function App() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authSuccess, setAuthSuccess] = useState(false);
 
-  // Load responses from storage on mount & keep in sync with local storage & custom events
+  // Real-time synchronization with Firebase Firestore across all devices, emails, and browsers
   useEffect(() => {
-    const syncResponses = () => {
-      const loaded = loadStoredResponses();
-      setResponses(loaded);
-    };
+    // Validate Firestore connection on boot
+    testConnection();
 
-    syncResponses();
-
-    const handleSync = () => syncResponses();
-    window.addEventListener('storage', handleSync);
-    window.addEventListener('sta330_responses_updated', handleSync);
+    // Subscribe to live responses from centralized cloud database
+    const unsubscribe = subscribeToSurveyResponses((liveResponses) => {
+      setResponses(liveResponses);
+    });
 
     return () => {
-      window.removeEventListener('storage', handleSync);
-      window.removeEventListener('sta330_responses_updated', handleSync);
+      unsubscribe();
     };
   }, []);
 
@@ -105,36 +103,31 @@ export default function App() {
     setIsPhoneLocked(false);
   };
 
-  const handleSurveySubmit = (newResponse: SurveyResponse) => {
-    const updated = addSurveyResponse(newResponse);
-    setResponses(updated);
+  const handleSurveySubmit = async (newResponse: SurveyResponse) => {
     if (typeof newResponse.dailyScreenTimeMinutes === 'number') {
       setActiveScreenTimeMinutes(newResponse.dailyScreenTimeMinutes);
     }
+    await addSurveyResponse(newResponse);
   };
 
-  const handleDeleteResponse = (id: string) => {
-    const updated = deleteSurveyResponse(id);
-    setResponses(updated);
+  const handleDeleteResponse = async (id: string) => {
+    await deleteSurveyResponse(id);
   };
 
-  const handleResetData = () => {
-    const reset = resetToSeedData();
-    setResponses(reset);
+  const handleResetData = async () => {
+    await clearAllSurveyData();
   };
 
   const handleExportCSV = () => {
     downloadCSVFile(responses);
   };
 
-  const handleUpdateEmailSent = (id: string, sentAt?: string) => {
-    const updated = updateSurveyResponseEmailSent(id, sentAt);
-    setResponses(updated);
+  const handleUpdateEmailSent = async (id: string, sentAt?: string) => {
+    await updateSurveyResponseEmailSent(id, sentAt);
   };
 
-  const handleResetAllEmailStatuses = () => {
-    const updated = resetAllEmailStatusesToPending();
-    setResponses(updated);
+  const handleResetAllEmailStatuses = async () => {
+    await resetAllEmailStatusesToPending();
   };
 
   const handleLoginSubmit = (e?: React.FormEvent) => {

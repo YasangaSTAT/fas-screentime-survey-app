@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "SurveyResponse": {
+      "title": "SurveyResponse",
+      "description": "Undergraduate student survey questionnaire response for STA 330 2.0 smartphone screen time study",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique response identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO timestamp of the response submission"
+        },
+        "createdAtFormatted": {
+          "type": "string",
+          "description": "Human-readable formatted submission time"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the student respondent"
+        },
+        "registrationNumber": {
+          "type": "string",
+          "description": "University student registration number (e.g. AS2022xxx)"
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "Contact telephone number"
+        },
+        "email": {
+          "type": "string",
+          "description": "Student email address for certificate dispatch"
+        },
+        "gender": {
+          "type": "string",
+          "description": "Self-reported gender"
+        },
+        "age": {
+          "type": "number",
+          "description": "Age in completed years"
+        },
+        "degreeProgramme": {
+          "type": "string",
+          "description": "Degree programme enrolled at FAS USJ"
+        },
+        "academicYear": {
+          "type": "string",
+          "description": "Current academic year"
+        },
+        "accommodationType": {
+          "type": "string",
+          "description": "Living and accommodation arrangement"
+        },
+        "accommodationOtherText": {
+          "type": "string",
+          "description": "Optional details if other accommodation"
+        },
+        "dailyScreenTimeMinutes": {
+          "type": "number",
+          "description": "Daily screen time in minutes"
+        },
+        "primaryPurpose": {
+          "type": "string",
+          "description": "Primary purpose for smartphone use"
+        },
+        "bedtimeUsageMinutes": {
+          "type": "number",
+          "description": "Bedtime usage in minutes"
+        },
+        "connectionType": {
+          "type": "string",
+          "description": "Primary mobile internet connection type"
+        },
+        "monthlyDataSpendLKR": {
+          "type": "number",
+          "description": "Monthly data expenditure in Sri Lankan Rupees"
+        },
+        "independentStudyHours": {
+          "type": "number",
+          "description": "Daily independent self-study hours"
+        },
+        "sleepDurationHours": {
+          "type": "number",
+          "description": "Nightly sleep duration in hours"
+        },
+        "commutingTimeMinutes": {
+          "type": "number",
+          "description": "Commute duration to campus in minutes"
+        },
+        "emailSentAt": {
+          "type": "string",
+          "description": "Timestamp when certificate email was dispatched by researcher"
+        }
+      },
+      "required": [
+        "id",
+        "timestamp",
+        "fullName",
+        "registrationNumber",
+        "email",
+        "gender",
+        "age",
+        "degreeProgramme",
+        "academicYear",
+        "dailyScreenTimeMinutes"
+      ]
+    }
+  },
+  "firestore": {
+    "/survey_responses/{responseId}": {
+      "schema": "SurveyResponse",
+      "description": "Centralized database collection storing survey submissions from all respondent devices"
+    }
+  }
+}

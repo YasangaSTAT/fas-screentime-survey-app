@@ -56,9 +56,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className="flex items-center gap-3 font-mono text-[10px]">
-            <span className="text-emerald-400 flex items-center gap-1">
+            <span className="text-emerald-400 flex items-center gap-1.5" title="Centralized cloud database active across all devices">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Active Academic Study</span>
+              <span>Live Cloud Sync</span>
             </span>
             <span className="text-slate-600">·</span>
             <span className="text-slate-300">

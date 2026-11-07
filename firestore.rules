@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidSurveyResponse(data) {
+      return data.id is string && data.id.size() <= 64 &&
+        data.fullName is string && data.fullName.size() <= 200 &&
+        data.registrationNumber is string && data.registrationNumber.size() <= 50 &&
+        data.email is string && data.email.size() <= 150 &&
+        data.gender is string && data.gender.size() <= 30 &&
+        data.degreeProgramme is string && data.degreeProgramme.size() <= 100 &&
+        data.academicYear is string && data.academicYear.size() <= 50 &&
+        data.dailyScreenTimeMinutes is number && data.dailyScreenTimeMinutes >= 0 && data.dailyScreenTimeMinutes <= 1440;
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Academic survey responses collection accessible to all devices in the study
+    match /survey_responses/{responseId} {
+      allow read: if true;
+      allow create: if isValidId(responseId) && isValidSurveyResponse(incoming());
+      allow update: if isValidId(responseId);
+      allow delete: if isValidId(responseId);
+    }
+  }
+}
