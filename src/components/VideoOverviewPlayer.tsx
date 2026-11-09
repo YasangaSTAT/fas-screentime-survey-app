@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Play,
   Pause,
   RotateCcw,
-  RotateCw,
   Volume2,
   VolumeX,
   Maximize2,
@@ -18,6 +18,7 @@ import {
   BookOpen,
   Award,
   ChevronRight,
+  ArrowLeft,
   ExternalLink,
   Layers,
   Settings,
@@ -143,31 +144,10 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
   const [isVoiceEnabled, setIsVoiceEnabled] = useState<boolean>(true);
   const [showSubtitles, setShowSubtitles] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isMobilePortrait, setIsMobilePortrait] = useState<boolean>(false);
-  const [rotateLandscape, setRotateLandscape] = useState<boolean>(false);
+  const [isStandaloneTheater, setIsStandaloneTheater] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-
-  // Track mobile device & viewport orientation
-  useEffect(() => {
-    const evaluateOrientation = () => {
-      if (typeof window === 'undefined') return;
-      const isPortrait = window.innerHeight > window.innerWidth;
-      const isMobile =
-        window.innerWidth <= 840 ||
-        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      setIsMobilePortrait(isPortrait && isMobile);
-    };
-
-    evaluateOrientation();
-    window.addEventListener('resize', evaluateOrientation);
-    window.addEventListener('orientationchange', evaluateOrientation);
-    return () => {
-      window.removeEventListener('resize', evaluateOrientation);
-      window.removeEventListener('orientationchange', evaluateOrientation);
-    };
-  }, []);
 
   // Determine current scene based on time
   const currentScene =
@@ -242,45 +222,43 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
     setIsPlaying(true);
   };
 
+  const handleOpenStandalone = () => {
+    setIsStandaloneTheater(true);
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden';
+    }
+  };
+
+  const handleCloseStandalone = () => {
+    setIsStandaloneTheater(false);
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  };
+
   const handleToggleFullscreen = () => {
+    // On mobile viewports, open fullscreen in dedicated separate theater background (not in the web site)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) {
+      handleOpenStandalone();
+      return;
+    }
+
     if (!isFullscreen) {
-      // 1. Attempt standard or webkit browser fullscreen API if supported
       try {
         const elem = containerRef.current as any;
         if (elem?.requestFullscreen) {
-          elem.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+          elem.requestFullscreen().catch(() => {});
         } else if (elem?.webkitRequestFullscreen) {
           elem.webkitRequestFullscreen();
         }
       } catch {
-        // Gracefully fallback to immersive CSS fullscreen
-      }
-
-      // 2. Try locking device orientation to landscape (Android Chrome, PWAs, modern mobile browsers)
-      try {
-        if (screen.orientation && 'lock' in screen.orientation) {
-          (screen.orientation as any).lock('landscape').catch(() => {});
-        }
-      } catch {
-        // ignore
-      }
-
-      // 3. For mobile portrait screens, automatically engage 90deg landscape rotation
-      const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
-      const isMobile =
-        typeof window !== 'undefined' &&
-        (window.innerWidth <= 840 ||
-          /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
-      if (isPortrait && isMobile) {
-        setRotateLandscape(true);
-      } else {
-        setRotateLandscape(false);
+        // Gracefully fallback
       }
 
       setIsFullscreen(true);
       if (typeof document !== 'undefined') {
         document.body.style.overflow = 'hidden';
-        document.body.style.backgroundColor = '#000000';
       }
     } else {
       handleExitFullscreen();
@@ -300,15 +278,6 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
       // ignore
     }
 
-    try {
-      if (screen.orientation && 'unlock' in screen.orientation) {
-        (screen.orientation as any).unlock();
-      }
-    } catch {
-      // ignore
-    }
-
-    setRotateLandscape(false);
     setIsFullscreen(false);
     if (typeof document !== 'undefined') {
       document.body.style.overflow = '';
@@ -316,14 +285,16 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
     }
   };
 
-  // If the user physically rotates their phone into horizontal landscape, auto-reset rotation transform
+  // If resized to mobile screen size, automatically exit desktop fullscreen
   useEffect(() => {
-    if (!isMobilePortrait && rotateLandscape) {
-      setRotateLandscape(false);
-    } else if (isFullscreen && isMobilePortrait && !rotateLandscape) {
-      setRotateLandscape(true);
-    }
-  }, [isMobilePortrait, isFullscreen]);
+    const handleResize = () => {
+      if (typeof window !== 'undefined' && window.innerWidth < 640 && isFullscreen) {
+        handleExitFullscreen();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isFullscreen]);
 
   // Synchronize fullscreen state on escape key or native change
   useEffect(() => {
@@ -337,8 +308,12 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        handleExitFullscreen();
+      if (e.key === 'Escape') {
+        if (isStandaloneTheater) {
+          handleCloseStandalone();
+        } else if (isFullscreen) {
+          handleExitFullscreen();
+        }
       }
     };
 
@@ -351,7 +326,7 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isFullscreen]);
+  }, [isFullscreen, isStandaloneTheater]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -377,7 +352,32 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
         </div>
       </div>
 
-      {/* Main Video Frame Container - Fullscreen pure black background */}
+      {/* Mobile Standalone Full Screen Mode Launch Banner */}
+      <div className="block sm:hidden">
+        <button
+          type="button"
+          onClick={handleOpenStandalone}
+          className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-sky-950/80 via-slate-900 to-indigo-950/80 border border-sky-500/40 text-white shadow-xl active:scale-[0.99] transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 group-hover:bg-sky-500 group-hover:text-white transition-colors">
+              <Maximize2 className="h-4 w-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>Open Full Screen Video</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono font-semibold">Separate Background</span>
+              </div>
+              <div className="text-[10px] text-slate-400">
+                Detached cinema theater mode with pure black background
+              </div>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-sky-400 group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      </div>
+
+      {/* Main Video Frame Container */}
       <div
         ref={containerRef}
         className={`group relative overflow-hidden transition-all ${
@@ -385,115 +385,74 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
             ? 'fixed inset-0 z-[99999] h-screen w-screen rounded-none border-none bg-black flex flex-col justify-center items-center m-0 p-0 shadow-none'
             : 'rounded-3xl border border-slate-800 bg-slate-950 shadow-2xl'
         }`}
-        style={{
-          backgroundColor: '#000000',
-        }}
       >
-        {/* Mobile Landscape Inner Wrapper with Pure Black Letterbox / Pillarbox */}
+        {/* Interactive Animated Video Experience (16:9 widescreen) */}
         <div
-          className={`relative flex items-center justify-center transition-all duration-300 ${
+          className={`relative w-full select-none overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 ${
             isFullscreen
-              ? rotateLandscape
-                ? 'w-[100dvh] h-[100dvw] max-w-[100dvh] max-h-[100dvw] rotate-90 origin-center bg-black'
-                : 'w-full h-full max-w-full max-h-full bg-black'
-              : 'w-full'
+              ? 'h-full max-h-screen aspect-video flex flex-col justify-between'
+              : 'aspect-video'
           }`}
-          style={{
-            backgroundColor: '#000000',
-          }}
         >
-          {/* Interactive Animated Video Experience (16:9 widescreen landscape) */}
-          <div
-            className={`relative w-full select-none overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 ${
-              isFullscreen
-                ? 'h-full aspect-video flex flex-col justify-between'
-                : 'aspect-video'
-            }`}
-            style={{
-              backgroundColor: '#000000',
-              maxWidth: isFullscreen
-                ? rotateLandscape
-                  ? 'calc(100dvw * 16 / 9)'
-                  : 'calc(100dvh * 16 / 9)'
-                : undefined,
-              maxHeight: isFullscreen
-                ? rotateLandscape
-                  ? '100dvw'
-                  : '100dvh'
-                : undefined,
-            }}
-          >
-            {/* Ambient Animated Glow Backdrop */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div
-                className={`absolute -top-1/3 -right-1/4 h-[500px] w-[500px] rounded-full blur-[140px] opacity-25 transition-all duration-1000 ${
-                  currentScene.id === 1
-                    ? 'bg-sky-500'
-                    : currentScene.id === 2
-                    ? 'bg-indigo-500'
-                    : currentScene.id === 3
-                    ? 'bg-emerald-500'
-                    : currentScene.id === 4
-                    ? 'bg-amber-500'
-                    : 'bg-rose-500'
-                }`}
-              />
-              <div className="absolute -bottom-1/3 -left-1/4 h-[400px] w-[400px] rounded-full bg-sky-500/15 blur-[120px]" />
-              {/* Subtle Grid overlay for high-tech academic feel */}
-              <div
-                className="absolute inset-0 opacity-[0.03]"
-                style={{
-                  backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-                  backgroundSize: '24px 24px',
-                }}
-              />
-            </div>
+          {/* Ambient Animated Glow Backdrop */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div
+              className={`absolute -top-1/3 -right-1/4 h-[500px] w-[500px] rounded-full blur-[140px] opacity-25 transition-all duration-1000 ${
+                currentScene.id === 1
+                  ? 'bg-sky-500'
+                  : currentScene.id === 2
+                  ? 'bg-indigo-500'
+                  : currentScene.id === 3
+                  ? 'bg-emerald-500'
+                  : currentScene.id === 4
+                  ? 'bg-amber-500'
+                  : 'bg-rose-500'
+              }`}
+            />
+            <div className="absolute -bottom-1/3 -left-1/4 h-[400px] w-[400px] rounded-full bg-sky-500/15 blur-[120px]" />
+            {/* Subtle Grid overlay for high-tech academic feel */}
+            <div
+              className="absolute inset-0 opacity-[0.03]"
+              style={{
+                backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+                backgroundSize: '24px 24px',
+              }}
+            />
+          </div>
 
-            {/* University Branding Overlay Watermark */}
-            <div className="absolute top-3 left-3 sm:top-5 sm:left-6 z-30 flex items-center gap-2.5 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-slate-800/80 shadow-md">
-              <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30">
-                <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          {/* University Branding Overlay Watermark */}
+          <div className="absolute top-3 left-3 sm:top-5 sm:left-6 z-30 flex items-center gap-2.5 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-slate-800/80 shadow-md">
+            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30">
+              <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </div>
+            <div className="leading-tight">
+              <div className="text-[10px] sm:text-[11px] font-bold text-white tracking-wide">
+                University of Sri Jayewardenepura
               </div>
-              <div className="leading-tight">
-                <div className="text-[10px] sm:text-[11px] font-bold text-white tracking-wide">
-                  University of Sri Jayewardenepura
-                </div>
-                <div className="text-[8px] sm:text-[9px] font-mono text-slate-400">
-                  STA 330 2.0 · Faculty of Applied Sciences
-                </div>
+              <div className="text-[8px] sm:text-[9px] font-mono text-slate-400">
+                STA 330 2.0 · Faculty of Applied Sciences
               </div>
             </div>
+          </div>
 
-            {/* Scene Badge, Orientation Rotate & Fullscreen Exit Controls */}
-            <div className="absolute top-3 right-3 sm:top-5 sm:right-6 z-40 flex items-center gap-2">
-              {isFullscreen && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setRotateLandscape((prev) => !prev)}
-                    className="flex items-center gap-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white px-2.5 py-1 text-[11px] font-medium border border-slate-700 shadow-xl backdrop-blur-md transition-all cursor-pointer"
-                    title={rotateLandscape ? 'Switch to Standard Orientation' : 'Force 90° Landscape'}
-                  >
-                    <RotateCw className="h-3.5 w-3.5 text-sky-400" />
-                    <span>{rotateLandscape ? 'Normal' : 'Landscape'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleExitFullscreen}
-                    className="flex items-center gap-1.5 rounded-full bg-red-950/80 hover:bg-red-900 text-red-100 px-2.5 py-1 text-[11px] font-semibold border border-red-500/50 shadow-xl backdrop-blur-md transition-all cursor-pointer"
-                    title="Exit Fullscreen"
-                  >
-                    <Minimize2 className="h-3.5 w-3.5 text-red-300" />
-                    <span>Exit</span>
-                  </button>
-                </>
-              )}
-              <div className="flex items-center gap-1.5 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[10px] sm:text-[11px] font-mono text-slate-300 backdrop-blur-md shadow-sm">
-                <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
-                <span>Chapter {currentScene.id} / 5</span>
-              </div>
+          {/* Scene Badge & Desktop Fullscreen Exit Control */}
+          <div className="absolute top-3 right-3 sm:top-5 sm:right-6 z-40 flex items-center gap-2">
+            {isFullscreen && (
+              <button
+                type="button"
+                onClick={handleExitFullscreen}
+                className="hidden sm:flex items-center gap-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white px-3 py-1.5 text-xs font-semibold border border-slate-700 shadow-xl backdrop-blur-md transition-all cursor-pointer"
+                title="Exit Fullscreen"
+              >
+                <Minimize2 className="h-3.5 w-3.5 text-slate-300" />
+                <span>Exit Fullscreen</span>
+              </button>
+            )}
+            <div className="flex items-center gap-1.5 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[10px] sm:text-[11px] font-mono text-slate-300 backdrop-blur-md shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
+              <span>Chapter {currentScene.id} / 5</span>
             </div>
+          </div>
 
             {/* Active Scene Content Presentation */}
             <div className="relative z-10 flex h-full flex-col justify-between p-6 sm:p-12 md:p-16 pb-20 sm:pb-24">
@@ -662,25 +621,32 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                     {playbackSpeed}x
                   </button>
 
-                  {/* Fullscreen toggle */}
+                  {/* Fullscreen toggle - Opens standalone theater on mobile, fullscreen on desktop */}
                   <button
                     type="button"
                     onClick={handleToggleFullscreen}
                     className={`flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-lg transition-all cursor-pointer ${
-                      isFullscreen
+                      isFullscreen || isStandaloneTheater
                         ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
                         : 'bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800'
                     }`}
-                    title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                    title={
+                      isFullscreen || isStandaloneTheater
+                        ? 'Exit Fullscreen'
+                        : 'Open Full Screen (Separate Background)'
+                    }
                   >
-                    {isFullscreen ? <Minimize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> : <Maximize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />}
+                    {isFullscreen || isStandaloneTheater ? (
+                      <Minimize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                    ) : (
+                      <Maximize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                    )}
                   </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Chapter Selection Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
@@ -733,6 +699,254 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
+      )}
+      {/* Standalone Full Screen Theater Mode Portal (Separate Background, Not In Website) */}
+      {isStandaloneTheater && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999999] flex flex-col justify-between bg-black text-white w-screen h-[100dvh] overflow-hidden select-none"
+          style={{ backgroundColor: '#000000' }}
+        >
+          {/* Dedicated Theater Top Navigation Bar */}
+          <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 bg-slate-950/95 border-b border-slate-800/80 backdrop-blur-md z-40 shrink-0">
+            <button
+              type="button"
+              onClick={handleCloseStandalone}
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-slate-900 border border-slate-700/80 hover:bg-slate-800 text-white px-3 py-1.5 text-xs font-semibold shadow-md transition-all cursor-pointer active:scale-95"
+            >
+              <ArrowLeft className="h-4 w-4 text-sky-400" />
+              <span>Back to Web Site</span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                <GraduationCap className="h-3.5 w-3.5" />
+              </div>
+              <div className="text-[11px] font-bold text-white tracking-wide truncate max-w-[140px] xs:max-w-none">
+                USJ Research Video Overview
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 rounded-full bg-slate-900 border border-slate-800 px-2.5 py-1 text-[11px] font-mono text-slate-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
+              <span>Part {currentScene.id}/5</span>
+            </div>
+          </div>
+
+          {/* Cinema Center Stage */}
+          <div className="relative flex-1 flex items-center justify-center bg-black overflow-hidden p-0 sm:p-4">
+            <div className="relative w-full max-w-5xl aspect-video bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 shadow-2xl flex flex-col justify-between overflow-hidden border-y sm:border sm:border-slate-800/80 sm:rounded-2xl">
+              {/* Ambient Animated Glow Backdrop */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div
+                  className={`absolute -top-1/3 -right-1/4 h-[400px] w-[400px] rounded-full blur-[120px] opacity-25 transition-all duration-1000 ${
+                    currentScene.id === 1
+                      ? 'bg-sky-500'
+                      : currentScene.id === 2
+                      ? 'bg-indigo-500'
+                      : currentScene.id === 3
+                      ? 'bg-emerald-500'
+                      : currentScene.id === 4
+                      ? 'bg-amber-500'
+                      : 'bg-rose-500'
+                  }`}
+                />
+              </div>
+
+              {/* Watermark */}
+              <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 z-20 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md px-2 py-1 rounded-lg border border-slate-800">
+                <div className="text-[9px] sm:text-[10px] font-mono text-sky-400 font-bold">
+                  STA 330 2.0 · Faculty of Applied Sciences
+                </div>
+              </div>
+
+              {/* Active Scene Content Presentation */}
+              <div className="relative z-10 flex h-full flex-col justify-between p-4 sm:p-8 md:p-10 pb-16 sm:pb-20">
+                <div className="mt-4 sm:mt-6 max-w-xl space-y-2 sm:space-y-3">
+                  <div className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/10 px-2 py-0.5 text-[10px] font-mono font-semibold text-sky-400 border border-sky-500/20">
+                    {currentScene.badge}
+                  </div>
+
+                  <h3 className="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                    {currentScene.title}
+                  </h3>
+
+                  <p className="text-[11px] sm:text-xs text-slate-300 font-medium leading-relaxed max-w-lg line-clamp-2 sm:line-clamp-none">
+                    {currentScene.subtitle}
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                    {currentScene.highlights.slice(0, 3).map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-1.5 rounded-md bg-slate-900/60 border border-slate-800/80 px-2.5 py-1 text-[10px] sm:text-[11px] text-slate-200 backdrop-blur-sm"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-sky-400 shrink-0" />
+                        <span className="truncate">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subtitles Overlay Bar */}
+                {showSubtitles && (
+                  <div className="mx-auto max-w-xl w-full text-center">
+                    <div className="inline-block rounded-lg bg-slate-950/90 border border-slate-800/80 px-3 py-1.5 text-[11px] sm:text-xs text-slate-200 backdrop-blur-md shadow-lg leading-relaxed">
+                      <span className="text-sky-400 font-mono text-[10px] mr-1 font-bold">[CC]</span>
+                      {currentScene.narrationText}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Big Center Play Overlay Button */}
+              {!isPlaying && (
+                <button
+                  type="button"
+                  onClick={handleTogglePlay}
+                  className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all cursor-pointer group/overlay"
+                  title="Play Video"
+                >
+                  <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-sky-500 text-white shadow-2xl shadow-sky-500/50 group-hover/overlay:scale-110 transition-transform">
+                    <Play className="h-6 w-6 sm:h-7 sm:w-7 ml-0.5 fill-white" />
+                  </div>
+                </button>
+              )}
+
+              {/* Bottom Control Bar */}
+              <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-3 sm:px-6 pt-4 pb-2.5 space-y-1.5">
+                <input
+                  type="range"
+                  min="0"
+                  max={VIDEO_DURATION}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-800 accent-sky-400"
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleTogglePlay}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-sky-500 transition-colors cursor-pointer"
+                      title={isPlaying ? 'Pause' : 'Play'}
+                    >
+                      {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleRestart}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      title="Restart"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                    </button>
+
+                    <div className="font-mono text-[10px] sm:text-[11px] text-slate-400">
+                      <span className="text-white font-semibold">{formatTime(currentTime)}</span>
+                      <span className="mx-1 text-slate-600">/</span>
+                      <span>{formatTime(VIDEO_DURATION)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition-colors cursor-pointer ${
+                        isVoiceEnabled
+                          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                          : 'border-slate-800 bg-slate-900 text-slate-400'
+                      }`}
+                      title={isVoiceEnabled ? 'Turn voice off' : 'Turn voice on'}
+                    >
+                      {isVoiceEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+                      <span className="hidden xs:inline">Voice</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowSubtitles(!showSubtitles)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition-colors cursor-pointer ${
+                        showSubtitles
+                          ? 'border-sky-500/40 bg-sky-500/10 text-sky-300 font-semibold'
+                          : 'border-slate-800 bg-slate-900 text-slate-400'
+                      }`}
+                      title="Toggle Subtitles"
+                    >
+                      <Captions className="h-3 w-3" />
+                      <span className="font-mono text-[9px]">CC</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const speeds = [1, 1.25, 1.5];
+                        const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+                        setPlaybackSpeed(next);
+                      }}
+                      className="px-2 py-1 rounded-lg border border-slate-800 bg-slate-900 text-[10px] font-mono text-slate-300 hover:text-white cursor-pointer"
+                      title="Playback Speed"
+                    >
+                      {playbackSpeed}x
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCloseStandalone}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+                      title="Back to Web Site"
+                    >
+                      <Minimize2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Standalone Bottom Chapter Tabs & Survey Action */}
+          <div className="bg-slate-950/95 border-t border-slate-800/80 px-3 py-2 sm:px-6 sm:py-3 shrink-0 space-y-2 z-30">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-0.5">
+              {SCENES.map((scene) => (
+                <button
+                  key={scene.id}
+                  type="button"
+                  onClick={() => handleJumpToScene(scene.startTime)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] sm:text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                    currentScene.id === scene.id
+                      ? 'border-sky-500 bg-sky-500/20 text-sky-300 font-bold'
+                      : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="font-mono text-[9px]">Part {scene.id}</span>
+                  <span className="truncate max-w-[90px] sm:max-w-[120px]">{scene.title}</span>
+                </button>
+              ))}
+            </div>
+
+            {onStartSurvey && (
+              <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 hidden xs:inline">
+                  Finished briefing? Record your 3-min screen time response:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCloseStandalone();
+                    onStartSurvey();
+                  }}
+                  className="w-full xs:w-auto ml-auto inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-xs font-semibold text-white shadow-md hover:bg-sky-400 transition-all cursor-pointer"
+                >
+                  <span>Begin Questionnaire</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
