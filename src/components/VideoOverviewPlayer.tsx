@@ -3,6 +3,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  RotateCw,
   Volume2,
   VolumeX,
   Maximize2,
@@ -142,9 +143,31 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
   const [isVoiceEnabled, setIsVoiceEnabled] = useState<boolean>(true);
   const [showSubtitles, setShowSubtitles] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isMobilePortrait, setIsMobilePortrait] = useState<boolean>(false);
+  const [rotateLandscape, setRotateLandscape] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Track mobile device & viewport orientation
+  useEffect(() => {
+    const evaluateOrientation = () => {
+      if (typeof window === 'undefined') return;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      const isMobile =
+        window.innerWidth <= 840 ||
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobilePortrait(isPortrait && isMobile);
+    };
+
+    evaluateOrientation();
+    window.addEventListener('resize', evaluateOrientation);
+    window.addEventListener('orientationchange', evaluateOrientation);
+    return () => {
+      window.removeEventListener('resize', evaluateOrientation);
+      window.removeEventListener('orientationchange', evaluateOrientation);
+    };
+  }, []);
 
   // Determine current scene based on time
   const currentScene =
@@ -221,39 +244,86 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
 
   const handleToggleFullscreen = () => {
     if (!isFullscreen) {
-      // Attempt standard or webkit browser fullscreen API if permitted
+      // 1. Attempt standard or webkit browser fullscreen API if supported
       try {
         const elem = containerRef.current as any;
         if (elem?.requestFullscreen) {
-          elem.requestFullscreen().catch(() => {});
+          elem.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
         } else if (elem?.webkitRequestFullscreen) {
           elem.webkitRequestFullscreen();
         }
       } catch {
         // Gracefully fallback to immersive CSS fullscreen
       }
-      setIsFullscreen(true);
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = 'hidden';
-      }
-    } else {
+
+      // 2. Try locking device orientation to landscape (Android Chrome, PWAs, modern mobile browsers)
       try {
-        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-          if (document.exitFullscreen) {
-            document.exitFullscreen().catch(() => {});
-          } else if ((document as any).webkitExitFullscreen) {
-            (document as any).webkitExitFullscreen();
-          }
+        if (screen.orientation && 'lock' in screen.orientation) {
+          (screen.orientation as any).lock('landscape').catch(() => {});
         }
       } catch {
         // ignore
       }
-      setIsFullscreen(false);
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = '';
+
+      // 3. For mobile portrait screens, automatically engage 90deg landscape rotation
+      const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+      const isMobile =
+        typeof window !== 'undefined' &&
+        (window.innerWidth <= 840 ||
+          /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+      if (isPortrait && isMobile) {
+        setRotateLandscape(true);
+      } else {
+        setRotateLandscape(false);
       }
+
+      setIsFullscreen(true);
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = 'hidden';
+        document.body.style.backgroundColor = '#000000';
+      }
+    } else {
+      handleExitFullscreen();
     }
   };
+
+  const handleExitFullscreen = () => {
+    try {
+      if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      if (screen.orientation && 'unlock' in screen.orientation) {
+        (screen.orientation as any).unlock();
+      }
+    } catch {
+      // ignore
+    }
+
+    setRotateLandscape(false);
+    setIsFullscreen(false);
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+      document.body.style.backgroundColor = '';
+    }
+  };
+
+  // If the user physically rotates their phone into horizontal landscape, auto-reset rotation transform
+  useEffect(() => {
+    if (!isMobilePortrait && rotateLandscape) {
+      setRotateLandscape(false);
+    } else if (isFullscreen && isMobilePortrait && !rotateLandscape) {
+      setRotateLandscape(true);
+    }
+  }, [isMobilePortrait, isFullscreen]);
 
   // Synchronize fullscreen state on escape key or native change
   useEffect(() => {
@@ -262,14 +332,13 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
         document.fullscreenElement || (document as any).webkitFullscreenElement
       );
       if (!isDocFullscreen && isFullscreen) {
-        setIsFullscreen(false);
-        document.body.style.overflow = '';
+        handleExitFullscreen();
       }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isFullscreen) {
-        handleToggleFullscreen();
+        handleExitFullscreen();
       }
     };
 
@@ -308,36 +377,52 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
         </div>
       </div>
 
-      {/* Main Video Frame Container */}
+      {/* Main Video Frame Container - Fullscreen pure black background */}
       <div
         ref={containerRef}
         className={`group relative overflow-hidden transition-all ${
           isFullscreen
-            ? 'fixed inset-0 z-[9999] h-screen w-screen rounded-none border-none bg-black flex flex-col justify-center items-center m-0 p-0 shadow-none'
+            ? 'fixed inset-0 z-[99999] h-screen w-screen rounded-none border-none bg-black flex flex-col justify-center items-center m-0 p-0 shadow-none'
             : 'rounded-3xl border border-slate-800 bg-slate-950 shadow-2xl'
         }`}
+        style={{
+          backgroundColor: '#000000',
+        }}
       >
-        {/* Floating Exit Button for Mobile Fullscreen */}
-        {isFullscreen && (
-          <button
-            type="button"
-            onClick={handleToggleFullscreen}
-            className="absolute top-4 right-4 z-50 flex items-center gap-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-semibold border border-slate-700 shadow-2xl backdrop-blur-md transition-all cursor-pointer"
-            title="Exit Fullscreen"
-          >
-            <Minimize2 className="h-4 w-4" />
-            <span>Exit Fullscreen</span>
-          </button>
-        )}
-
-        {/* Interactive Animated Video Experience */}
+        {/* Mobile Landscape Inner Wrapper with Pure Black Letterbox / Pillarbox */}
         <div
-          className={`relative w-full select-none overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 ${
+          className={`relative flex items-center justify-center transition-all duration-300 ${
             isFullscreen
-              ? 'h-full max-h-screen aspect-video flex flex-col justify-between'
-              : 'aspect-video'
+              ? rotateLandscape
+                ? 'w-[100dvh] h-[100dvw] max-w-[100dvh] max-h-[100dvw] rotate-90 origin-center bg-black'
+                : 'w-full h-full max-w-full max-h-full bg-black'
+              : 'w-full'
           }`}
+          style={{
+            backgroundColor: '#000000',
+          }}
         >
+          {/* Interactive Animated Video Experience (16:9 widescreen landscape) */}
+          <div
+            className={`relative w-full select-none overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 ${
+              isFullscreen
+                ? 'h-full aspect-video flex flex-col justify-between'
+                : 'aspect-video'
+            }`}
+            style={{
+              backgroundColor: '#000000',
+              maxWidth: isFullscreen
+                ? rotateLandscape
+                  ? 'calc(100dvw * 16 / 9)'
+                  : 'calc(100dvh * 16 / 9)'
+                : undefined,
+              maxHeight: isFullscreen
+                ? rotateLandscape
+                  ? '100dvw'
+                  : '100dvh'
+                : undefined,
+            }}
+          >
             {/* Ambient Animated Glow Backdrop */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div
@@ -365,23 +450,46 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
             </div>
 
             {/* University Branding Overlay Watermark */}
-            <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-2.5 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800/80 shadow-md">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30">
-                <GraduationCap className="h-4 w-4" />
+            <div className="absolute top-3 left-3 sm:top-5 sm:left-6 z-30 flex items-center gap-2.5 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-slate-800/80 shadow-md">
+              <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </div>
               <div className="leading-tight">
-                <div className="text-[11px] font-bold text-white tracking-wide">
+                <div className="text-[10px] sm:text-[11px] font-bold text-white tracking-wide">
                   University of Sri Jayewardenepura
                 </div>
-                <div className="text-[9px] font-mono text-slate-400">
+                <div className="text-[8px] sm:text-[9px] font-mono text-slate-400">
                   STA 330 2.0 · Faculty of Applied Sciences
                 </div>
               </div>
             </div>
 
-            {/* Scene Badge & Counter */}
-            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-2">
-              <div className="flex items-center gap-1.5 rounded-full bg-slate-950/80 border border-slate-800 px-3 py-1 text-[11px] font-mono text-slate-300 backdrop-blur-md shadow-sm">
+            {/* Scene Badge, Orientation Rotate & Fullscreen Exit Controls */}
+            <div className="absolute top-3 right-3 sm:top-5 sm:right-6 z-40 flex items-center gap-2">
+              {isFullscreen && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setRotateLandscape((prev) => !prev)}
+                    className="flex items-center gap-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white px-2.5 py-1 text-[11px] font-medium border border-slate-700 shadow-xl backdrop-blur-md transition-all cursor-pointer"
+                    title={rotateLandscape ? 'Switch to Standard Orientation' : 'Force 90° Landscape'}
+                  >
+                    <RotateCw className="h-3.5 w-3.5 text-sky-400" />
+                    <span>{rotateLandscape ? 'Normal' : 'Landscape'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExitFullscreen}
+                    className="flex items-center gap-1.5 rounded-full bg-red-950/80 hover:bg-red-900 text-red-100 px-2.5 py-1 text-[11px] font-semibold border border-red-500/50 shadow-xl backdrop-blur-md transition-all cursor-pointer"
+                    title="Exit Fullscreen"
+                  >
+                    <Minimize2 className="h-3.5 w-3.5 text-red-300" />
+                    <span>Exit</span>
+                  </button>
+                </>
+              )}
+              <div className="flex items-center gap-1.5 rounded-full bg-slate-950/80 border border-slate-800 px-2.5 py-1 text-[10px] sm:text-[11px] font-mono text-slate-300 backdrop-blur-md shadow-sm">
                 <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
                 <span>Chapter {currentScene.id} / 5</span>
               </div>
@@ -572,6 +680,7 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
             </div>
           </div>
         </div>
+      </div>
 
       {/* Chapter Selection Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
