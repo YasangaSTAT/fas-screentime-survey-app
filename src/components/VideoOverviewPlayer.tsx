@@ -220,15 +220,69 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
   };
 
   const handleToggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen?.().catch(() => {});
+    if (!isFullscreen) {
+      // Attempt standard or webkit browser fullscreen API if permitted
+      try {
+        const elem = containerRef.current as any;
+        if (elem?.requestFullscreen) {
+          elem.requestFullscreen().catch(() => {});
+        } else if (elem?.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        }
+      } catch {
+        // Gracefully fallback to immersive CSS fullscreen
+      }
       setIsFullscreen(true);
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = 'hidden';
+      }
     } else {
-      document.exitFullscreen?.().catch(() => {});
+      try {
+        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if ((document as any).webkitExitFullscreen) {
+            (document as any).webkitExitFullscreen();
+          }
+        }
+      } catch {
+        // ignore
+      }
       setIsFullscreen(false);
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
     }
   };
+
+  // Synchronize fullscreen state on escape key or native change
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isDocFullscreen = Boolean(
+        document.fullscreenElement || (document as any).webkitFullscreenElement
+      );
+      if (!isDocFullscreen && isFullscreen) {
+        setIsFullscreen(false);
+        document.body.style.overflow = '';
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        handleToggleFullscreen();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -257,10 +311,33 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
       {/* Main Video Frame Container */}
       <div
         ref={containerRef}
-        className="group relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-2xl transition-all"
+        className={`group relative overflow-hidden transition-all ${
+          isFullscreen
+            ? 'fixed inset-0 z-[9999] h-screen w-screen rounded-none border-none bg-black flex flex-col justify-center items-center m-0 p-0 shadow-none'
+            : 'rounded-3xl border border-slate-800 bg-slate-950 shadow-2xl'
+        }`}
       >
+        {/* Floating Exit Button for Mobile Fullscreen */}
+        {isFullscreen && (
+          <button
+            type="button"
+            onClick={handleToggleFullscreen}
+            className="absolute top-4 right-4 z-50 flex items-center gap-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-semibold border border-slate-700 shadow-2xl backdrop-blur-md transition-all cursor-pointer"
+            title="Exit Fullscreen"
+          >
+            <Minimize2 className="h-4 w-4" />
+            <span>Exit Fullscreen</span>
+          </button>
+        )}
+
         {/* Interactive Animated Video Experience */}
-        <div className="relative aspect-video w-full select-none overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div
+          className={`relative w-full select-none overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 ${
+            isFullscreen
+              ? 'h-full max-h-screen aspect-video flex flex-col justify-between'
+              : 'aspect-video'
+          }`}
+        >
             {/* Ambient Animated Glow Backdrop */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div
@@ -481,10 +558,14 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                   <button
                     type="button"
                     onClick={handleToggleFullscreen}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-slate-400 hover:text-white cursor-pointer"
+                    className={`flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-lg transition-all cursor-pointer ${
+                      isFullscreen
+                        ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
+                        : 'bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800'
+                    }`}
                     title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
                   >
-                    {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                    {isFullscreen ? <Minimize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> : <Maximize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />}
                   </button>
                 </div>
               </div>
