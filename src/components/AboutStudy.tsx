@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { VisualThemeMode } from '../types/survey';
+import { VideoOverviewPlayer } from './VideoOverviewPlayer';
 
 interface AboutStudyProps {
   onNavigateToForm: () => void;
@@ -103,6 +104,11 @@ export const AboutStudy: React.FC<AboutStudyProps> = ({
             )}
           </div>
         </div>
+      </section>
+
+      {/* Video Overview Presentation */}
+      <section>
+        <VideoOverviewPlayer onStartSurvey={onNavigateToForm} />
       </section>
 
       {/* Institutional Metadata & Academic Integrity Grid */}
