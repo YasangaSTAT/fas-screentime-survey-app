@@ -222,6 +222,43 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
     setIsPlaying(true);
   };
 
+  const handleToggleVoice = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    const nextVoice = !isVoiceEnabled;
+    setIsVoiceEnabled(nextVoice);
+
+    if (nextVoice) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(currentScene.narrationText);
+        utterance.rate = playbackSpeed * 0.98;
+        utterance.pitch = 1.0;
+        const voices = window.speechSynthesis.getVoices();
+        const englishVoice = voices.find((v) => v.lang.startsWith('en') && !v.name.includes('Bad'));
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+        }
+        window.speechSynthesis.speak(utterance);
+      }
+    } else {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  };
+
+  const handleToggleSubtitles = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    setShowSubtitles((prev) => !prev);
+  };
+
+  const handleToggleSpeed = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    const speeds = [1, 1.25, 1.5];
+    const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+    setPlaybackSpeed(next);
+  };
+
   const handleOpenStandalone = () => {
     setIsStandaloneTheater(true);
     if (typeof document !== 'undefined') {
@@ -455,22 +492,22 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
           </div>
 
             {/* Active Scene Content Presentation */}
-            <div className="relative z-10 flex h-full flex-col justify-between p-6 sm:p-12 md:p-16 pb-20 sm:pb-24">
-              <div className="mt-8 sm:mt-10 max-w-2xl space-y-3 sm:space-y-4">
-                <div className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-sky-400 border border-sky-500/20">
+            <div className="relative z-10 flex h-full flex-col justify-between p-3 sm:p-10 md:p-14 pb-16 sm:pb-22">
+              <div className="mt-4 sm:mt-8 max-w-2xl space-y-1 sm:space-y-3">
+                <div className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500/10 px-2 py-0.5 text-[10px] sm:text-[11px] font-mono font-semibold text-sky-400 border border-sky-500/20">
                   {currentScene.badge}
                 </div>
 
-                <h3 className="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                <h3 className="text-sm xs:text-base sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight line-clamp-1 sm:line-clamp-none">
                   {currentScene.title}
                 </h3>
 
-                <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed max-w-xl">
+                <p className="text-[10px] sm:text-xs text-slate-300 font-medium leading-relaxed max-w-xl line-clamp-1 sm:line-clamp-none">
                   {currentScene.subtitle}
                 </p>
 
-                {/* Key Bullet Visual Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                {/* Key Bullet Visual Cards - Hidden on compact mobile to prevent pushing subtitles out */}
+                <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5">
                   {currentScene.highlights.map((item, idx) => (
                     <div
                       key={idx}
@@ -483,12 +520,12 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                 </div>
               </div>
 
-              {/* Subtitles Overlay Bar */}
+              {/* Subtitles Overlay Bar - Positioned cleanly right above bottom bar */}
               {showSubtitles && (
-                <div className="mx-auto max-w-2xl w-full text-center">
-                  <div className="inline-block rounded-xl bg-slate-950/90 border border-slate-800/80 px-4 py-2 text-xs sm:text-sm text-slate-200 backdrop-blur-md shadow-xl leading-relaxed">
-                    <span className="text-sky-400 font-mono text-[11px] mr-1.5 font-bold">[CC]</span>
-                    {currentScene.narrationText}
+                <div className="mx-auto max-w-2xl w-full text-center pb-1 sm:pb-0 z-20">
+                  <div className="inline-block rounded-lg sm:rounded-xl bg-slate-950/95 border border-slate-800/90 px-2.5 py-1 sm:px-4 sm:py-2 text-[10px] sm:text-xs text-slate-200 backdrop-blur-md shadow-xl leading-relaxed max-w-full">
+                    <span className="text-sky-400 font-mono text-[10px] sm:text-[11px] mr-1.5 font-bold">[CC]</span>
+                    <span className="line-clamp-2 sm:line-clamp-none">{currentScene.narrationText}</span>
                   </div>
                 </div>
               )}
@@ -502,14 +539,14 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                 className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all cursor-pointer group/overlay"
                 title="Play Video Overview"
               >
-                <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-sky-500 text-white shadow-2xl shadow-sky-500/50 group-hover/overlay:scale-110 transition-transform">
-                  <Play className="h-7 w-7 sm:h-9 sm:w-9 ml-1 fill-white" />
+                <div className="flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-sky-500 text-white shadow-2xl shadow-sky-500/50 group-hover/overlay:scale-110 transition-transform">
+                  <Play className="h-6 w-6 sm:h-9 sm:w-9 ml-0.5 sm:ml-1 fill-white" />
                 </div>
               </button>
             )}
 
-            {/* Bottom Control Bar */}
-            <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-4 sm:px-6 pt-6 pb-3 space-y-2">
+            {/* Bottom Control Bar - Non-wrapping and touch-friendly */}
+            <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-3 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2">
               {/* Scrub Timeline */}
               <div className="relative flex items-center group/scrub">
                 <input
@@ -536,28 +573,28 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                 </div>
               </div>
 
-              {/* Bottom Buttons Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
-                <div className="flex items-center gap-2 sm:gap-3">
+              {/* Bottom Buttons Bar - Single line layout without awkward wrap */}
+              <div className="flex items-center justify-between gap-1 sm:gap-3 text-xs text-slate-300">
+                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={handleTogglePlay}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-sky-500 transition-colors cursor-pointer"
+                    className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-slate-800 text-white hover:bg-sky-500 active:scale-95 touch-manipulation transition-all cursor-pointer"
                     title={isPlaying ? 'Pause' : 'Play'}
                   >
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                    {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
                   </button>
 
                   <button
                     type="button"
                     onClick={handleRestart}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-slate-900 text-slate-400 hover:text-white active:scale-95 touch-manipulation transition-all cursor-pointer"
                     title="Restart from beginning"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                   </button>
 
-                  <div className="font-mono text-[11px] text-slate-400 pl-1">
+                  <div className="font-mono text-[10px] sm:text-[11px] text-slate-400 pl-0.5 sm:pl-1 whitespace-nowrap">
                     <span className="text-white font-semibold">{formatTime(currentTime)}</span>
                     <span className="mx-1 text-slate-600">/</span>
                     <span>{formatTime(VIDEO_DURATION)}</span>
@@ -576,46 +613,42 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                 </div>
 
                 {/* Right controls */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   {/* Voice Narration toggle */}
                   <button
                     type="button"
-                    onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] transition-colors cursor-pointer ${
+                    onClick={handleToggleVoice}
+                    className={`flex items-center justify-center gap-1 h-7.5 px-2 sm:h-7 sm:px-2 rounded-lg border text-[10px] sm:text-[11px] font-medium transition-all active:scale-95 touch-manipulation cursor-pointer ${
                       isVoiceEnabled
-                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                        : 'border-slate-800 bg-slate-900 text-slate-400'
+                        ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 shadow-sm shadow-emerald-500/20'
+                        : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
                     }`}
                     title={isVoiceEnabled ? 'Turn voice narration off' : 'Turn voice narration on'}
                   >
-                    {isVoiceEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                    {isVoiceEnabled ? <Volume2 className="h-3.5 w-3.5 text-emerald-400" /> : <VolumeX className="h-3.5 w-3.5" />}
                     <span className="hidden md:inline">Narration</span>
                   </button>
 
                   {/* Captions toggle */}
                   <button
                     type="button"
-                    onClick={() => setShowSubtitles(!showSubtitles)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] transition-colors cursor-pointer ${
+                    onClick={handleToggleSubtitles}
+                    className={`flex items-center justify-center gap-1 h-7.5 px-2 sm:h-7 sm:px-2 rounded-lg border text-[10px] sm:text-[11px] font-medium transition-all active:scale-95 touch-manipulation cursor-pointer ${
                       showSubtitles
-                        ? 'border-sky-500/40 bg-sky-500/10 text-sky-300 font-semibold'
-                        : 'border-slate-800 bg-slate-900 text-slate-400'
+                        ? 'border-sky-500/60 bg-sky-500/20 text-sky-300 font-semibold shadow-sm shadow-sky-500/20'
+                        : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
                     }`}
                     title="Toggle Subtitles [CC]"
                   >
-                    <Captions className="h-3.5 w-3.5" />
-                    <span className="font-mono text-[10px]">CC</span>
+                    <Captions className="h-3.5 w-3.5 text-sky-400" />
+                    <span className="font-mono text-[9px] sm:text-[10px] font-bold">CC</span>
                   </button>
 
                   {/* Speed toggle */}
                   <button
                     type="button"
-                    onClick={() => {
-                      const speeds = [1, 1.25, 1.5];
-                      const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
-                      setPlaybackSpeed(next);
-                    }}
-                    className="px-2 py-1 rounded-lg border border-slate-800 bg-slate-900 text-[11px] font-mono text-slate-300 hover:text-white cursor-pointer"
+                    onClick={handleToggleSpeed}
+                    className="flex items-center justify-center h-7.5 px-2 sm:h-7 sm:px-2 rounded-lg border border-slate-700 bg-slate-900 text-[10px] sm:text-[11px] font-mono font-bold text-slate-200 hover:text-white active:scale-95 touch-manipulation cursor-pointer transition-all"
                     title="Playback Speed"
                   >
                     {playbackSpeed}x
@@ -625,10 +658,10 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                   <button
                     type="button"
                     onClick={handleToggleFullscreen}
-                    className={`flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-lg transition-all cursor-pointer ${
+                    className={`flex h-7.5 w-7.5 sm:h-7 sm:w-7 items-center justify-center rounded-lg transition-all active:scale-95 touch-manipulation cursor-pointer ${
                       isFullscreen || isStandaloneTheater
                         ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
-                        : 'bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800'
+                        : 'bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
                     }`}
                     title={
                       isFullscreen || isStandaloneTheater
@@ -637,9 +670,9 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                     }
                   >
                     {isFullscreen || isStandaloneTheater ? (
-                      <Minimize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                      <Minimize2 className="h-3.5 w-3.5" />
                     ) : (
-                      <Maximize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                      <Maximize2 className="h-3.5 w-3.5" />
                     )}
                   </button>
                 </div>
@@ -853,40 +886,36 @@ export const VideoOverviewPlayer: React.FC<VideoOverviewPlayerProps> = ({ onStar
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition-colors cursor-pointer ${
+                      onClick={handleToggleVoice}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition-colors cursor-pointer active:scale-95 touch-manipulation ${
                         isVoiceEnabled
-                          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                          ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 shadow-sm shadow-emerald-500/20'
                           : 'border-slate-800 bg-slate-900 text-slate-400'
                       }`}
                       title={isVoiceEnabled ? 'Turn voice off' : 'Turn voice on'}
                     >
-                      {isVoiceEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+                      {isVoiceEnabled ? <Volume2 className="h-3 w-3 text-emerald-400" /> : <VolumeX className="h-3 w-3" />}
                       <span className="hidden xs:inline">Voice</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setShowSubtitles(!showSubtitles)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition-colors cursor-pointer ${
+                      onClick={handleToggleSubtitles}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] transition-colors cursor-pointer active:scale-95 touch-manipulation ${
                         showSubtitles
-                          ? 'border-sky-500/40 bg-sky-500/10 text-sky-300 font-semibold'
+                          ? 'border-sky-500/60 bg-sky-500/20 text-sky-300 font-semibold shadow-sm shadow-sky-500/20'
                           : 'border-slate-800 bg-slate-900 text-slate-400'
                       }`}
                       title="Toggle Subtitles"
                     >
-                      <Captions className="h-3 w-3" />
-                      <span className="font-mono text-[9px]">CC</span>
+                      <Captions className="h-3 w-3 text-sky-400" />
+                      <span className="font-mono text-[9px] font-bold">CC</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => {
-                        const speeds = [1, 1.25, 1.5];
-                        const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
-                        setPlaybackSpeed(next);
-                      }}
-                      className="px-2 py-1 rounded-lg border border-slate-800 bg-slate-900 text-[10px] font-mono text-slate-300 hover:text-white cursor-pointer"
+                      onClick={handleToggleSpeed}
+                      className="flex items-center justify-center h-6.5 px-2 rounded-lg border border-slate-700 bg-slate-900 text-[10px] font-mono font-bold text-slate-200 hover:text-white cursor-pointer active:scale-95 touch-manipulation transition-all"
                       title="Playback Speed"
                     >
                       {playbackSpeed}x
