@@ -156,7 +156,7 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
   const handleFillSample = () => {
     const sample = {
       fullName: 'Chamari Gunawardana',
-      registrationNumber: 'AS114038',
+      registrationNumber: 'AS2023554',
       contactNumber: '0714455889',
       email: 'chamari.gunaw@gmail.com',
       gender: 'Female' as const,
@@ -186,7 +186,7 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
 
     if (step === 1 || viewMode === 'all') {
       if (!formData.fullName.trim()) newErrors.fullName = 'Full Name is required.';
-      if (!formData.registrationNumber.trim()) newErrors.registrationNumber = 'University Registration Number is required (e.g. AS114038).';
+      if (!formData.registrationNumber.trim()) newErrors.registrationNumber = 'Student Index Number is required (e.g. AS2023554).';
       if (!formData.contactNumber.trim()) newErrors.contactNumber = 'Contact Number is required.';
       if (!formData.email.trim()) {
         newErrors.email = 'Personal E-mail Address is required.';
@@ -741,17 +741,17 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({
                 )}
               </div>
 
-              {/* Q2: University Registration Number */}
+              {/* Q2: Student Index Number */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-slate-200">
-                  2. University Registration Number <span className="text-rose-400">*</span>
+                  2. Student Index Number <span className="text-rose-400">*</span>
                 </label>
-                <p className="text-xs text-slate-400">Ex: AS114038</p>
+                <p className="text-xs text-slate-400">Ex: AS2023554</p>
                 <input
                   type="text"
                   value={formData.registrationNumber}
                   onChange={(e) => updateField('registrationNumber', e.target.value.toUpperCase())}
-                  placeholder="e.g. AS114038"
+                  placeholder="AS202XXXX"
                   className={`w-full rounded-lg border bg-slate-950/70 px-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition-colors ${
                     errors.registrationNumber ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-sky-500'
                   }`}
